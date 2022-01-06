@@ -2,6 +2,17 @@
 
 namespace ft
 {
+     Functor::Functor(RegexComponentBase const *executable, const char* &ptr, unsigned int consumed, Functor *next): executable(executable), ptr(ptr), consumed(consumed), next(next)
+    {
+    }
+    
+
+    bool    Functor::operator()()
+    {
+        if (!this->executable)
+            return true;
+        return this->executable->match(this->ptr, this->consumed, this->next);
+    }
 
     RegexComponentBase::RegexComponentBase(int type) : type(type)
     {
@@ -14,8 +25,7 @@ namespace ft
             this->component.chars = new std::set<char>();
             break;
         case REPEAT:
-            this->component.children = new std::vector<RegexComponentBase *>();
-            this->component.children->reserve(2);
+            this->component.range = new RepeatedRange();
             break;
         case CONCAT:
             this->component.children = new std::vector<RegexComponentBase *>();
@@ -88,24 +98,19 @@ namespace ft
             this->component.chars->insert(c);
     }
 
-    const char *RegexGroup::match(const char *ptr) const
+    bool    RegexGroup::match(const char* &ptr, unsigned long long, Functor*fn) const
     {
-        if (this->component.chars->find(*ptr) != this->component.chars->end())
-            return ptr + 1;
-        return (NULL);
+        if (*ptr && this->component.chars->find(*ptr) != this->component.chars->end())
+        {
+            ptr++;
+            bool    tmp = fn->operator()();
+            ptr--;
+            return tmp;
+        }
+        return (false);
     }
 
-    RegexComponentBase* RegexGroup::clone(std::map<RegexComponentBase *,
-        RegexComponentBase *> &cloned)
-    {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexGroup *newGroup = new RegexGroup();
-        cloned[this] = newGroup;
-        newGroup->component.chars->insert(this->component.chars->begin(),
-            this->component.chars->end());
-        return (newGroup);
-    }
+    
 
     void    RegexGroup::addChild(RegexComponentBase *child)
     {
@@ -140,24 +145,19 @@ namespace ft
             this->component.chars->insert(c);
     }
 
-    const char *RegexInverseGroup::match(const char *ptr) const
+    bool    RegexInverseGroup::match(const char* &ptr, unsigned long long, Functor*fn) const
     {
-        if (this->component.chars->find(*ptr) == this->component.chars->end())
-            return ptr + 1;
-        return (NULL);
+       if (*ptr && this->component.chars->find(*ptr) == this->component.chars->end())
+        {
+            ptr++;
+            bool    tmp = fn->operator()();
+            ptr--;
+            return tmp;
+        }
+        return (false);
     }
 
-    RegexComponentBase *RegexInverseGroup::clone(std::map<
-        RegexComponentBase *, RegexComponentBase *> &cloned)
-    {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexInverseGroup *newGroup = new RegexInverseGroup();
-        cloned[this] = newGroup;
-        newGroup->component.chars->insert(this->component.chars->begin(),
-            this->component.chars->end());
-        return (newGroup);
-    }
+   
 
     void    RegexInverseGroup::addChild(RegexComponentBase *child)
     {
@@ -179,41 +179,13 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    const char *RegexConcat::match(const char *ptr) const
+    bool    RegexConcat::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
     {
-        std::vector<RegexComponentBase *>::const_iterator it;
-        std::vector<RegexComponentBase *>::const_iterator end;
-
-        it = this->component.children->begin();
-        end = this->component.children->end();
-        for (; it != end; it++)
-        {
-            ptr = (*it)->match(ptr);
-            if (ptr == NULL)
-                return (NULL);
-        }
-        return (ptr);
+        if (ctx == this->component.children->size())
+            return fn->operator()();
+        Functor newFn(this, ptr, ctx + 1, fn);
+        return this->component.children->at(ctx)->match(ptr, 0, &newFn);
     }
-
-    RegexComponentBase *RegexConcat::clone(std::map<RegexComponentBase *,
-        RegexComponentBase *> &cloned)
-    {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexConcat *newConcat = new RegexConcat();
-        cloned[this] = newConcat;
-        std::vector<RegexComponentBase *>::const_iterator it;
-        std::vector<RegexComponentBase *>::const_iterator end;
-
-        it = this->component.children->begin();
-        end = this->component.children->end();
-        for (; it != end; it++)
-        {
-            newConcat->addChild((*it)->clone(cloned));
-        }
-        return (newConcat);
-    }
-    
 
     void    RegexConcat::addChar(char c)
     {
@@ -240,40 +212,14 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    const char *RegexAlternate::match(const char *ptr) const
+    bool   RegexAlternate::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
     {
-        std::vector<RegexComponentBase *>::const_iterator it;
-        std::vector<RegexComponentBase *>::const_iterator end;
-        const char *tmp;
-        it = this->component.children->begin();
-        end = this->component.children->end();
-        for (; it != end; it++)
-        {
-            tmp = (*it)->match(ptr);
-            if (tmp != NULL)
-                return (tmp);
-            
-        }
-        return (NULL);
-    }
-
-    RegexComponentBase *RegexAlternate::clone(std::map<
-        RegexComponentBase *, RegexComponentBase *> &cloned)
-    {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexAlternate *newAlternate = new RegexAlternate();
-        cloned[this] = newAlternate;
-        std::vector<RegexComponentBase *>::const_iterator it;
-        std::vector<RegexComponentBase *>::const_iterator end;
-
-        it = this->component.children->begin();
-        end = this->component.children->end();
-        for (; it != end; it++)
-        {
-            newAlternate->addChild((*it)->clone(cloned));
-        }
-        return (newAlternate);
+        if (ctx == this->component.children->size())
+            return false;
+        bool    res = this->component.children->at(ctx)->match(ptr, 0, fn);
+        if (res)
+            return res;
+        return this->match(ptr, ctx + 1, fn);
     }
 
     void    RegexAlternate::addChar(char c)
@@ -290,51 +236,42 @@ namespace ft
 
     // Start RegexRepeat
 
-    RegexRepeat::RegexRepeat() : RegexComponentBase(REPEAT) {}
-
-    RegexRepeat::RegexRepeat( RegexComponentBase *toRepeat,
-        RegexComponentBase *next) : RegexComponentBase(REPEAT)
-    {
-        this->component.children->push_back(toRepeat);
-        this->component.children->push_back(next);
+    RegexRepeat::RegexRepeat() : RegexComponentBase(REPEAT) {
+        throw ("RegexRepeat::RegexRepeat() not implemented");
     }
 
-    const char *RegexRepeat::match(const char *ptr) const
+    RegexRepeat::RegexRepeat(
+        RegexComponentBase *child1,
+        unsigned long long min,
+        unsigned long long max) : RegexComponentBase(REPEAT)
     {
-        const char *tmp = this->component.children->at(0)->match(ptr);
-        if (tmp == NULL)
-            return ptr;
-        const char *tmp2 = this->match(tmp);
-        if (tmp2 != tmp)
-            return tmp2;
-        // this so we can  capture the groups again as the last recursive call
-        // did miss them up
-        tmp = this->component.children->at(0)->match(ptr);
-    
-        tmp2 = this->component.children->at(1)->match(tmp);
-        if (tmp2 == NULL)
-            return ptr;
-        return (tmp2);
+        this->component.range->toRepeat = child1;
+        this->component.range->min = min;
+        this->component.range->max = max;
     }
 
-    RegexComponentBase *RegexRepeat::clone(std::map<
-        RegexComponentBase *, RegexComponentBase *> &cloned)
+    RegexRepeat::RegexRepeat(RepeatedRange r) : RegexComponentBase(REPEAT)
     {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexRepeat *newRepeat = new RegexRepeat();
-        cloned[this] = newRepeat;
 
-        std::vector<RegexComponentBase *>::const_iterator it;
-        std::vector<RegexComponentBase *>::const_iterator end;
+        this->component.range->toRepeat = r.toRepeat;
+        this->component.range->min = r.min;
+        this->component.range->max = r.max;
+    }
 
-        it = this->component.children->begin();
-        end = this->component.children->end();
-        for (; it != end; it++)
-        {
-            newRepeat->addChild((*it)->clone(cloned));
-        }
-        return (newRepeat);
+    bool    RegexRepeat::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
+    {
+        if (ctx > this->component.range->max)
+            return false;
+        
+        Functor newFn(this, ptr, ctx + 1, fn);
+
+        bool    res = this->component.range->toRepeat->match(ptr, 0, &newFn);
+
+        if (res)
+            return res;
+        if (ctx >= this->component.range->min)
+            return fn->operator()();
+        return false;
     }
 
     void    RegexRepeat::addChild(RegexComponentBase *child)
@@ -363,32 +300,27 @@ namespace ft
         this->component.group->second = NULL;
     }
     
-    const char *RegexStartOfGroup::match(const char *ptr) const
+    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
     {
-        this->component.group->first = ptr;
-        this->component.group->second = ptr;
-        return ptr;
+        if (fn->operator()())
+        {
+            if (!this->component.group->first)
+                this->component.group->first = ptr;
+            return true;
+        }
+        return false;
     }
 
     void    RegexStartOfGroup::capture(const char *end)
     {
-        this->component.group->second = end;
+        if (!this->component.group->second)
+            this->component.group->second = end;
     }
 
     std::pair<const char *, const char *>
     RegexStartOfGroup::getCapturedGroup() const
     {
         return *this->component.group;
-    }
-
-    RegexComponentBase *RegexStartOfGroup::clone(std::map<
-        RegexComponentBase *, RegexComponentBase *> &cloned)
-    {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexStartOfGroup *newGroup = new RegexStartOfGroup();
-        cloned[this] = newGroup;
-        return (newGroup);
     }
 
     void    RegexStartOfGroup::addChild(RegexComponentBase *child)
@@ -417,22 +349,12 @@ namespace ft
         this->component.groupStart = group;
     }
 
-    const char *RegexEndOfGroup::match(const char *ptr) const
+    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
     {
-        this->component.groupStart->capture(ptr);
-        return ptr;
-    }
-
-    RegexComponentBase *RegexEndOfGroup::clone(std::map<
-        RegexComponentBase *, RegexComponentBase *> &cloned)
-    {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexEndOfGroup *newGroup = new RegexEndOfGroup();
-        cloned[this] = newGroup;
-        newGroup->component.groupStart = 
-            dynamic_cast<RegexStartOfGroup *>(this->component.groupStart->clone(cloned));
-        return (newGroup);
+        bool res = fn->operator()();
+        if (res)
+            this->component.groupStart->capture(ptr);
+        return res;
     }
 
     void    RegexEndOfGroup::addChild(RegexComponentBase *child)
@@ -452,40 +374,33 @@ namespace ft
 
     // END RegexEndOfGroup
 
-    // Start RegexEpsilon
 
-    RegexEpsilon::RegexEpsilon() : RegexComponentBase(EPSILON) {}
+    // Start RegexEnd
+    RegexEnd::RegexEnd() : RegexComponentBase(END) {}
 
-    const char *RegexEpsilon::match(const char *ptr) const
+    bool    RegexEnd::match(const char* &, unsigned long long, Functor*) const
     {
-        return ptr;
+        return true;
     }
 
-    RegexComponentBase *RegexEpsilon::clone(std::map<
-        RegexComponentBase *, RegexComponentBase *> &cloned)
+    void    RegexEnd::addChild(RegexComponentBase *child)
     {
-        if (cloned.find(this) != cloned.end())
-            return (cloned[this]);
-        RegexEpsilon *newEpsilon = new RegexEpsilon();
-        cloned[this] = newEpsilon;
-        return (newEpsilon);
+        throw ("RegexEnd::addChild() not implemented");
     }
 
-    void    RegexEpsilon::addChild(RegexComponentBase *child)
+    void    RegexEnd::addChar(char c)
     {
-        throw ("RegexEpsilon::addChild() not implemented");
+        throw ("RegexEnd::addChar() not implemented");
     }
 
-    void    RegexEpsilon::addChar(char c)
+    void    RegexEnd::addRangeChar(char from, char to)
     {
-        throw ("RegexEpsilon::addChar() not implemented");
+        throw ("RegexEnd::addRangeChar() not implemented");
     }
 
-    void    RegexEpsilon::addRangeChar(char from, char to)
-    {
-        throw ("RegexEpsilon::addRangeChar() not implemented");
-    }
-
-    // END RegexEpsilon
+    // END RegexEnd
 
 }// namespace ft
+
+
+// a?abc(p*|ft)+0+ abcftpppppp0
