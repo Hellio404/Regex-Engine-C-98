@@ -50,7 +50,7 @@ namespace ft
         virtual void    addChar(char) = 0;
         virtual void    addRangeChar(char, char) = 0;
         virtual void    addChild(RegexComponentBase *) = 0;
-        virtual bool    match(const char *&, unsigned long long, Functor*) const = 0;
+        virtual bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const = 0;
         enum
         {
             GROUP,
@@ -63,6 +63,7 @@ namespace ft
             START_OF_GROUP,
             END_OF_GROUP,
             END,
+            EPSILON
         };
     protected:
         RegexComponentBase(int type);
@@ -78,9 +79,11 @@ namespace ft
             const char*                 &ptr;
             unsigned int                consumed;
             Functor                     *next;
+            const char*                 prev;
+
         public:
-            Functor(RegexComponentBase const *executable, const char* &ptr, unsigned int consumed, Functor *next);
-            bool    operator()();
+            Functor(RegexComponentBase const *executable, const char* &ptr, unsigned int consumed, Functor *next, const char *prev = NULL);
+            bool    run();
     };
 
    
@@ -97,7 +100,7 @@ namespace ft
 
         void    addChar(char c);
         void    addRangeChar(char from, char to);
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
         
         private:
             void    addChild(RegexComponentBase *);
@@ -115,7 +118,7 @@ namespace ft
 
         void    addChar(char c);
         void    addRangeChar(char from, char to);
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
         private:
             void    addChild(RegexComponentBase *);
     };
@@ -132,7 +135,7 @@ namespace ft
 
         void    addChild(RegexComponentBase *child);
 
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
 
         private:
             void    addChar(char);
@@ -149,7 +152,7 @@ namespace ft
 
         void    addChild(RegexComponentBase *child);
 
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
         private:
             void    addChar(char);
             void    addRangeChar(char, char);
@@ -164,7 +167,7 @@ namespace ft
         RegexRepeat(RepeatedRange);
         RegexRepeat(RegexComponentBase *child1, unsigned long long min,
             unsigned long long max);
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
 
         private:
             RegexRepeat();
@@ -178,7 +181,7 @@ namespace ft
     {
         RegexStartOfGroup();
 
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
         void    capture(const char *end);
     
         std::pair <const char *, const char *> getCapturedGroup() const;
@@ -193,7 +196,7 @@ namespace ft
     {
         RegexEndOfGroup(RegexStartOfGroup *);
 
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
 
         private:
             RegexEndOfGroup();
@@ -206,7 +209,7 @@ namespace ft
     {
         RegexEnd();
 
-        bool    match(const char *&, unsigned long long, Functor*) const;
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
 
         private:
             void    addChild(RegexComponentBase *child);
@@ -214,6 +217,16 @@ namespace ft
             void    addRangeChar(char, char);
     };
 
-    
+    struct RegexEpsilon : public RegexComponentBase
+    {
+        RegexEpsilon();
+
+        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
+
+        private:
+            void    addChild(RegexComponentBase *child);
+            void    addChar(char);
+            void    addRangeChar(char, char);
+    };
 
 } // namespace ft

@@ -2,16 +2,24 @@
 
 namespace ft
 {
-     Functor::Functor(RegexComponentBase const *executable, const char* &ptr, unsigned int consumed, Functor *next): executable(executable), ptr(ptr), consumed(consumed), next(next)
-    {
-    }
+     Functor::Functor(
+         RegexComponentBase 
+         const*executable,
+         const char* &ptr,
+         unsigned int consumed,
+         Functor *next,
+         const char* prev): executable(executable), ptr(ptr),
+                            consumed(consumed), next(next), prev(prev) {}
+
     
 
-    bool    Functor::operator()()
+    
+
+    bool    Functor::run()
     {
         if (!this->executable)
             return true;
-        return this->executable->match(this->ptr, this->consumed, this->next);
+        return this->executable->match(this->ptr, this->consumed, this->next, this->prev);
     }
 
     RegexComponentBase::RegexComponentBase(int type) : type(type)
@@ -98,12 +106,12 @@ namespace ft
             this->component.chars->insert(c);
     }
 
-    bool    RegexGroup::match(const char* &ptr, unsigned long long, Functor*fn) const
+    bool    RegexGroup::match(const char* &ptr, unsigned long long, Functor*fn, const char*) const
     {
         if (*ptr && this->component.chars->find(*ptr) != this->component.chars->end())
         {
             ptr++;
-            bool    tmp = fn->operator()();
+            bool    tmp = fn->run();
             ptr--;
             return tmp;
         }
@@ -145,12 +153,12 @@ namespace ft
             this->component.chars->insert(c);
     }
 
-    bool    RegexInverseGroup::match(const char* &ptr, unsigned long long, Functor*fn) const
+    bool    RegexInverseGroup::match(const char* &ptr, unsigned long long, Functor*fn, const char*) const
     {
        if (*ptr && this->component.chars->find(*ptr) == this->component.chars->end())
         {
             ptr++;
-            bool    tmp = fn->operator()();
+            bool    tmp = fn->run();
             ptr--;
             return tmp;
         }
@@ -179,10 +187,10 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    bool    RegexConcat::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
+    bool    RegexConcat::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
     {
         if (ctx == this->component.children->size())
-            return fn->operator()();
+            return fn->run();
         Functor newFn(this, ptr, ctx + 1, fn);
         return this->component.children->at(ctx)->match(ptr, 0, &newFn);
     }
@@ -212,7 +220,7 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    bool   RegexAlternate::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
+    bool   RegexAlternate::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
     {
         if (ctx == this->component.children->size())
             return false;
@@ -258,19 +266,21 @@ namespace ft
         this->component.range->max = r.max;
     }
 
-    bool    RegexRepeat::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
+    bool    RegexRepeat::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char* prev) const
     {
         if (ctx > this->component.range->max)
             return false;
-        
-        Functor newFn(this, ptr, ctx + 1, fn);
 
+        if (prev == ptr)
+            return fn->run();
+        
+        Functor newFn(this, ptr, ctx + 1, fn, ptr);
         bool    res = this->component.range->toRepeat->match(ptr, 0, &newFn);
 
         if (res)
             return res;
         if (ctx >= this->component.range->min)
-            return fn->operator()();
+            return fn->run();
         return false;
     }
 
@@ -300,20 +310,15 @@ namespace ft
         this->component.group->second = NULL;
     }
     
-    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
+    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
     {
-        if (fn->operator()())
-        {
-            if (!this->component.group->first)
-                this->component.group->first = ptr;
-            return true;
-        }
-        return false;
+        this->component.group->first = ptr;
+        return fn->run();
     }
 
     void    RegexStartOfGroup::capture(const char *end)
     {
-        if (!this->component.group->second)
+        if (end != this->component.group->first)
             this->component.group->second = end;
     }
 
@@ -349,11 +354,10 @@ namespace ft
         this->component.groupStart = group;
     }
 
-    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn) const
+    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
     {
-        bool res = fn->operator()();
-        if (res)
-            this->component.groupStart->capture(ptr);
+        this->component.groupStart->capture(ptr);
+        bool res = fn->run();
         return res;
     }
 
@@ -378,7 +382,7 @@ namespace ft
     // Start RegexEnd
     RegexEnd::RegexEnd() : RegexComponentBase(END) {}
 
-    bool    RegexEnd::match(const char* &, unsigned long long, Functor*) const
+    bool    RegexEnd::match(const char* &, unsigned long long, Functor*, const char*) const
     {
         return true;
     }
@@ -399,6 +403,33 @@ namespace ft
     }
 
     // END RegexEnd
+
+    // Start RegexEpsilon
+
+    RegexEpsilon::RegexEpsilon() : RegexComponentBase(EPSILON) {}
+
+    bool    RegexEpsilon::match(const char* &, unsigned long long, Functor*fn, const char*) const
+    {
+        return fn->run();
+    }
+
+    void    RegexEpsilon::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexEpsilon::addChild() not implemented");
+    }
+
+    void    RegexEpsilon::addChar(char c)
+    {
+        throw ("RegexEpsilon::addChar() not implemented");
+    }
+
+    void    RegexEpsilon::addRangeChar(char from, char to)
+    {
+        throw ("RegexEpsilon::addRangeChar() not implemented");
+    }
+
+    // END RegexEpsilon
+
 
 }// namespace ft
 
