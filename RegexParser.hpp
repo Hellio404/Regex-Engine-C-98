@@ -16,11 +16,18 @@ class RegexParser
     RegexComponentBase* root;
     static const long long Infinity = __LONG_LONG_MAX__;
     static const long long MaxRepeat = 1024;
+    std::vector <RegexStartOfLine *> startOfLines;
+    std::vector <RegexStartOfGroup *> inner_groups;
+
 public:
-    std::vector <RegexStartOfGroup *> groups;
+    std::vector <std::string> groups;
+
     RegexParser(const std::string &regex);
     ~RegexParser();
     bool                    match(std::string const&);
+    bool                    match(const char *);
+    std::vector<std::string >   matchAll(std::string const&);
+    std::vector<std::string >   matchAll(const char*);
 
 private:
     char                    peek();
@@ -36,16 +43,20 @@ private:
     RegexComponentBase*     expr();
     RegexComponentBase*     term();
     RegexComponentBase*     factor();
+    RegexComponentBase*     group();
     RegexComponentBase*     atom();
     RegexComponentBase*     chr();
-
+    RegexComponentBase*     charGroup();
+    RegexComponentBase*     charGroupBody(RegexComponentBase*);
+    RegexComponentBase*     charGroupSkiped(char, RegexComponentBase*);
+    RegexComponentBase*     charGroupRange(char, RegexComponentBase*);
 
     RegexComponentBase*     repeat(RegexComponentBase *, long long, long long);
     RegexComponentBase*     repeat(RegexComponentBase *, char);
     RegexComponentBase*     concat(RegexComponentBase *, RegexComponentBase *);
     RegexComponentBase*     alter(RegexComponentBase *, RegexComponentBase *);
 
-    RegexComponentBase*     construct_skiped_char(RegexGroup *, char);
+    RegexComponentBase*     construct_skiped_char();
 
     RegexComponentBase*     parse();
 
@@ -60,3 +71,10 @@ public:
 };
 
 } // namespace ft
+
+/*
+
+ab(c*|d)e\1 abccccceccccc
+
+
+*/

@@ -312,8 +312,15 @@ namespace ft
     
     bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
     {
+        std::pair<const char *, const char *> tmp = getCapturedGroup();
         this->component.group->first = ptr;
-        return fn->run();
+        bool matched = fn->run();
+        if (!matched || !this->component.group->second)
+        {
+            this->component.group->first = tmp.first;
+            this->component.group->second = tmp.second;
+        }
+        return matched;
     }
 
     void    RegexStartOfGroup::capture(const char *end)
@@ -430,6 +437,111 @@ namespace ft
 
     // END RegexEpsilon
 
+
+    // Start RegexBackReference
+
+    RegexBackReference::RegexBackReference() : RegexComponentBase(BACK_REFERENCE) {}
+
+    RegexBackReference::RegexBackReference(RegexStartOfGroup *group) : 
+        RegexComponentBase(BACK_REFERENCE)
+    {
+        this->component.groupStart = group;
+    }
+
+    bool    RegexBackReference::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    {
+        std::pair<const char *, const char *> const& group = this->component.groupStart->getCapturedGroup();
+        if (group.first == NULL || group.first == group.second)
+            return fn->run();
+        const char *start = group.first;
+        const char *end = group.second;
+        const char *p = ptr;
+        while (start != end && *ptr && *start == *ptr)
+            ++start, ++ptr;
+        bool res = false;
+        if (start == end)
+            return fn->run();
+        ptr = p;
+        return res;
+    }
+
+    void    RegexBackReference::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexBackReference::addChild() not implemented");
+    }
+
+    void    RegexBackReference::addChar(char c)
+    {
+        throw ("RegexBackReference::addChar() not implemented");
+    }
+
+    void    RegexBackReference::addRangeChar(char from, char to)
+    {
+        throw ("RegexBackReference::addRangeChar() not implemented");
+    }
+
+    // END RegexBackReference
+
+    // Start RegexStartOfLine
+
+    RegexStartOfLine::RegexStartOfLine() : RegexComponentBase(START_OF_LINE) {}
+
+    void    RegexStartOfLine::setStart(const char *start)
+    {
+        this->component.startOfString = start;
+    }
+
+    bool    RegexStartOfLine::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    {
+        if (ptr == this->component.startOfString || *(ptr - 1) == '\n')
+            return fn->run();
+        return false;
+    }
+
+    void    RegexStartOfLine::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexStartOfLine::addChild() not implemented");
+    }
+
+    void    RegexStartOfLine::addChar(char c)
+    {
+        throw ("RegexStartOfLine::addChar() not implemented");
+    }
+
+    void    RegexStartOfLine::addRangeChar(char from, char to)
+    {
+        throw ("RegexStartOfLine::addRangeChar() not implemented");
+    }
+
+    // END RegexStartOfLine
+
+    // Start RegexEndOfLine
+
+    RegexEndOfLine::RegexEndOfLine() : RegexComponentBase(END_OF_LINE) {}
+
+    bool    RegexEndOfLine::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    {
+        if (*ptr == '\0' || *ptr == '\n')
+            return fn->run();
+        return false;
+    }
+
+    void    RegexEndOfLine::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexEndOfLine::addChild() not implemented");
+    }
+
+    void    RegexEndOfLine::addChar(char c)
+    {
+        throw ("RegexEndOfLine::addChar() not implemented");
+    }
+
+    void    RegexEndOfLine::addRangeChar(char from, char to)
+    {
+        throw ("RegexEndOfLine::addRangeChar() not implemented");
+    }
+
+    // END RegexEndOfLine
 
 }// namespace ft
 
