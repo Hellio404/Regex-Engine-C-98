@@ -7,19 +7,28 @@ namespace ft
          const*executable,
          const char* &ptr,
          unsigned int consumed,
+         MatchInfo* info,
          Functor *next,
          const char* prev): executable(executable), ptr(ptr),
-                            consumed(consumed), next(next), prev(prev) {}
+                            consumed(consumed), info(info), next(next), prev(prev) {}
 
     
 
-    
+    char    invert_case(char c)
+    {
+        if (c >= 'A' && c <= 'Z')
+            return c + ('a' - 'A');
+        else if (c >= 'a' && c <= 'z')
+            return c - ('a' - 'A');
+        else
+            return c;
+    }
 
     bool    Functor::run()
     {
         if (!this->executable)
             return true;
-        return this->executable->match(this->ptr, this->consumed, this->next, this->prev);
+        return this->executable->match(this->ptr, this->consumed, this->info, this->next, this->prev);
     }
 
     RegexComponentBase::RegexComponentBase(int type) : type(type)
@@ -106,9 +115,15 @@ namespace ft
             this->component.chars->insert(c);
     }
 
-    bool    RegexGroup::match(const char* &ptr, unsigned long long, Functor*fn, const char*) const
+    bool    RegexGroup::match(const char* &ptr, unsigned long long, MatchInfo *info, Functor*fn, const char*) const
     {
-        if (*ptr && this->component.chars->find(*ptr) != this->component.chars->end())
+        if (ptr != info->endOfStr
+            && (this->component.chars->find(*ptr) 
+                != this->component.chars->end()
+            || (info->flags & RegexComponentBase::iCase
+            && this->component.chars->find(ft::invert_case(*ptr)) 
+                != this->component.chars->end()))
+        )
         {
             ptr++;
             bool    tmp = fn->run();
@@ -153,9 +168,15 @@ namespace ft
             this->component.chars->insert(c);
     }
 
-    bool    RegexInverseGroup::match(const char* &ptr, unsigned long long, Functor*fn, const char*) const
+    bool    RegexInverseGroup::match(const char* &ptr, unsigned long long, MatchInfo *info, Functor*fn, const char*) const
     {
-       if (*ptr && this->component.chars->find(*ptr) == this->component.chars->end())
+       if (ptr != info->endOfStr
+            && (this->component.chars->find(*ptr) 
+                == this->component.chars->end()
+            || (info->flags & RegexComponentBase::iCase
+            && this->component.chars->find(ft::invert_case(*ptr)) 
+                == this->component.chars->end()))
+        )
         {
             ptr++;
             bool    tmp = fn->run();
@@ -187,12 +208,12 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    bool    RegexConcat::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool    RegexConcat::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
         if (ctx == this->component.children->size())
             return fn->run();
-        Functor newFn(this, ptr, ctx + 1, fn);
-        return this->component.children->at(ctx)->match(ptr, 0, &newFn);
+        Functor newFn(this, ptr, ctx + 1, info, fn);
+        return this->component.children->at(ctx)->match(ptr, 0, info, &newFn);
     }
 
     void    RegexConcat::addChar(char c)
@@ -220,14 +241,14 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    bool   RegexAlternate::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool   RegexAlternate::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
         if (ctx == this->component.children->size())
             return false;
-        bool    res = this->component.children->at(ctx)->match(ptr, 0, fn);
+        bool    res = this->component.children->at(ctx)->match(ptr, 0, info, fn);
         if (res)
             return res;
-        return this->match(ptr, ctx + 1, fn);
+        return this->match(ptr, ctx + 1, info, fn);
     }
 
     void    RegexAlternate::addChar(char c)
@@ -266,7 +287,7 @@ namespace ft
         this->component.range->max = r.max;
     }
 
-    bool    RegexRepeat::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char* prev) const
+    bool    RegexRepeat::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char* prev) const
     {
         if (ctx > this->component.range->max)
             return false;
@@ -274,8 +295,8 @@ namespace ft
         if (prev == ptr)
             return fn->run();
         
-        Functor newFn(this, ptr, ctx + 1, fn, ptr);
-        bool    res = this->component.range->toRepeat->match(ptr, 0, &newFn);
+        Functor newFn(this, ptr, ctx + 1, info, fn, ptr);
+        bool    res = this->component.range->toRepeat->match(ptr, 0, info, &newFn);
 
         if (res)
             return res;
@@ -301,6 +322,63 @@ namespace ft
 
     // END RegexRepeat
 
+    // Start RegexRepeatLazy
+
+    RegexRepeatLazy::RegexRepeatLazy() : RegexComponentBase(REPEAT) {
+        throw ("RegexRepeatLazy::RegexRepeatLazy() not implemented");
+    }
+
+    RegexRepeatLazy::RegexRepeatLazy(
+        RegexComponentBase *child1,
+        unsigned long long min,
+        unsigned long long max) : RegexComponentBase(REPEAT)
+    {
+        this->component.range->toRepeat = child1;
+        this->component.range->min = min;
+        this->component.range->max = max;
+    }
+
+    RegexRepeatLazy::RegexRepeatLazy(RepeatedRange r) : RegexComponentBase(REPEAT)
+    {
+
+        this->component.range->toRepeat = r.toRepeat;
+        this->component.range->min = r.min;
+        this->component.range->max = r.max;
+    }
+
+    bool    RegexRepeatLazy::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char* prev) const
+    {
+        if (ctx > this->component.range->max)
+            return false;
+
+        bool matched = false;
+        if (ctx >= this->component.range->min)
+            matched = fn->run();
+        if (!matched && ctx < this->component.range->max)
+        {
+            Functor newFn(this, ptr, ctx + 1, info, fn, ptr);
+            return this->component.range->toRepeat->match(ptr, 0, info, &newFn);
+        }
+        return matched;
+    }
+
+    void    RegexRepeatLazy::addChild(RegexComponentBase *child)
+    {
+        this->component.children->push_back(child);
+    }
+
+    void    RegexRepeatLazy::addChar(char c)
+    {
+        throw ("RegexRepeatLazy::addChar() not implemented");
+    }
+
+    void    RegexRepeatLazy::addRangeChar(char from, char to)
+    {
+        throw ("RegexRepeatLazy::addRangeChar() not implemented");
+    }
+
+    // END RegexRepeatLazy
+
     // Start RegexStartOfGroup
 
     RegexStartOfGroup::RegexStartOfGroup() : 
@@ -310,7 +388,7 @@ namespace ft
         this->component.group->second = NULL;
     }
     
-    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
         std::pair<const char *, const char *> tmp = getCapturedGroup();
         this->component.group->first = ptr;
@@ -360,12 +438,25 @@ namespace ft
     {
         this->component.groupStart = group;
     }
-
-    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
+        std::pair<const char *, const char *> tmp = this->component.groupStart->getCapturedGroup();
         this->component.groupStart->capture(ptr);
-        bool res = fn->run();
-        return res;
+        bool matched = fn->run();
+        /*
+        ^<([a-z]+)([^<]*)(?:>(.*)<\/\1>|\s+\/>)$
+        <head><meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible"
+        content="IE=edge"><meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+        <title>Document</title></head>
+        */
+        if (!matched)
+        {
+            this->component.groupStart->component.group->first = tmp.first;
+            this->component.groupStart->component.group->second = tmp.second;
+        }
+        return matched;
     }
 
     void    RegexEndOfGroup::addChild(RegexComponentBase *child)
@@ -389,7 +480,7 @@ namespace ft
     // Start RegexEnd
     RegexEnd::RegexEnd() : RegexComponentBase(END) {}
 
-    bool    RegexEnd::match(const char* &, unsigned long long, Functor*, const char*) const
+    bool    RegexEnd::match(const char* &, unsigned long long, MatchInfo *info, Functor*, const char*) const
     {
         return true;
     }
@@ -421,7 +512,7 @@ namespace ft
         this->component.groupStart = group;
     }
 
-    bool    RegexBackReference::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool    RegexBackReference::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
         std::pair<const char *, const char *> const& group = this->component.groupStart->getCapturedGroup();
         if (group.first == NULL || group.first == group.second)
@@ -464,9 +555,9 @@ namespace ft
         this->component.startOfString = start;
     }
 
-    bool    RegexStartOfLine::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool    RegexStartOfLine::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
-        if (ptr == this->component.startOfString || *(ptr - 1) == '\n')
+        if (ptr == info->startOfStr || *(ptr - 1) == '\n')
             return fn->run();
         return false;
     }
@@ -492,9 +583,9 @@ namespace ft
 
     RegexEndOfLine::RegexEndOfLine() : RegexComponentBase(END_OF_LINE) {}
 
-    bool    RegexEndOfLine::match(const char* &ptr, unsigned long long ctx, Functor*fn, const char*) const
+    bool    RegexEndOfLine::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
-        if (*ptr == '\0' || *ptr == '\n')
+        if (ptr != info->endOfStr || *ptr == '\n')
             return fn->run();
         return false;
     }
@@ -515,6 +606,39 @@ namespace ft
     }
 
     // END RegexEndOfLine
+
+    // Start RegexWordBoundary
+
+    RegexWordBoundary::RegexWordBoundary() : RegexComponentBase(WORD_BOUNDARY) {}
+
+    bool    RegexWordBoundary::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    {
+        if ((ptr == info->startOfStr &&  (isalpha(*ptr) || *ptr == '_'))
+            || (ptr == info->endOfStr 
+                &&  (isalpha(*(ptr - 1)) || *(ptr - 1) == '_'))
+            || (ptr != info->startOfStr && ptr != info->endOfStr 
+                && (isalpha(*(ptr - 1)) || *(ptr - 1) == '_') 
+                    ^ (isalpha(*ptr) || *ptr == '_')))
+            return fn->run();
+        return false;
+    }
+
+    void    RegexWordBoundary::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexWordBoundary::addChild() not implemented");
+    }
+
+    void    RegexWordBoundary::addChar(char c)
+    {
+        throw ("RegexWordBoundary::addChar() not implemented");
+    }
+
+    void    RegexWordBoundary::addRangeChar(char from, char to)
+    {
+        throw ("RegexWordBoundary::addRangeChar() not implemented");
+    }
+
+    // END RegexWordBoundary
 
 }// namespace ft
 

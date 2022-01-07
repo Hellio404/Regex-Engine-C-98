@@ -2,36 +2,38 @@
 
 namespace ft
 {
-    RegexParser::InvalidRegexException::InvalidRegexException
+    Regex::InvalidRegexException::InvalidRegexException
         (const char* error): error(error) {}
 
-    const char* RegexParser::InvalidRegexException::what() const throw()
+    const char* Regex::InvalidRegexException::what() const throw()
     {
         return error;
     }
   
 
-    RegexParser::RegexParser(const std::string &regx) : 
+    Regex::Regex(const std::string &regx) : 
         regex(regx), current(regex.begin())
     {
         this->root = this->parse();
     }
 
-    bool RegexParser::match(std::string const& str) {
+    bool Regex::match(std::string const& str) {
         return this->match(str.c_str());
     }
 
-    bool    RegexParser::match(const char *str)
+    bool    Regex::match(const char *str)
     {
         this->groups.clear();
         RegexEnd end;
-        Functor fn(&end, str, 0, NULL);
-        for (size_t i = 0; i < this->startOfLines.size(); i++)
-            this->startOfLines[i]->setStart(str);
+        MatchInfo info;
+        info.startOfStr = str;
+        info.endOfStr = str + strlen(str);
+        info.flags = 0;
+        Functor fn(&end, str, 0, &info, NULL);
         for (size_t i = 0; str[i]; i++)
         {
             const char* start = str + i;
-            if (this->root->match(start, 0, &fn))
+            if (this->root->match(start, 0, &info, &fn))
             {
                 for (size_t j = 0; j < this->inner_groups.size(); j++)
                 {
@@ -52,12 +54,12 @@ namespace ft
         return false;
     }
 
-    std::vector<std::string> RegexParser::matchAll(std::string const& str)
+    std::vector<std::string> Regex::matchAll(std::string const& str)
     {
         return this->matchAll(str.c_str());
     }
 
-    std::vector<std::string> RegexParser::matchAll(const char *str)
+    std::vector<std::string> Regex::matchAll(const char *str)
     {
         std::vector<std::string> result;
         while (this->match(str))
@@ -70,14 +72,14 @@ namespace ft
 
 
 
-    RegexParser::~RegexParser() {}
+    Regex::~Regex() {}
 
-    char RegexParser::peek()
+    char Regex::peek()
     {
         return *current;
     }
 
-    char RegexParser::eat(char c, const char* error)
+    char Regex::eat(char c, const char* error)
     {
         if (peek() != c)
             throw InvalidRegexException(error);
@@ -85,24 +87,24 @@ namespace ft
         return c;
     }
 
-    char RegexParser::next()
+    char Regex::next()
     {
         char c = peek();
         return eat(c, "Unexpected character");
     }
 
-    bool RegexParser::hasMoreChars()
+    bool Regex::hasMoreChars()
     {
         return current != regex.end();
     }
 
-    bool RegexParser::isRepeatChar(char c)
+    bool Regex::isRepeatChar(char c)
     {
         return c == '*' || c == '+' || c == '?';
     }
 
     // alternate here
-    RegexComponentBase *RegexParser::expr()
+    RegexComponentBase *Regex::expr()
     {
         RegexComponentBase *t = term();
         if (hasMoreChars() && peek() == '|')
@@ -115,7 +117,7 @@ namespace ft
     }
 
     // concat here
-    RegexComponentBase *RegexParser::term()
+    RegexComponentBase *Regex::term()
     {
         RegexComponentBase *f = factor();
         if (hasMoreChars() && peek() != ')' && peek() != '|')
@@ -127,7 +129,7 @@ namespace ft
         return f;
     }
 
-    RegexComponentBase *RegexParser::factor()
+    RegexComponentBase *Regex::factor()
     {
         RegexComponentBase *a = atom();
         RegexComponentBase *res = a;
@@ -147,7 +149,7 @@ namespace ft
         return res;
     }
 
-    std::pair<long long, long long> RegexParser::repeat_range()
+    std::pair<long long, long long> Regex::repeat_range()
     {
         long long min = integer();
         long long max = min;
@@ -158,12 +160,12 @@ namespace ft
             if (hasMoreChars() && isdigit(peek()))
                 max = integer();
             else
-                max = RegexParser::Infinity;
+                max = Regex::Infinity;
         }
         return std::make_pair(min, max);
     }
 
-    RegexComponentBase *RegexParser::atom()
+    RegexComponentBase *Regex::atom()
     {
         RegexComponentBase *res;
         if (hasMoreChars() && peek() == '(')
@@ -184,7 +186,7 @@ namespace ft
         return chr();
     }
 
-    RegexComponentBase *RegexParser::group()
+    RegexComponentBase *Regex::group()
     {
         RegexComponentBase *res;
         if (hasMoreChars() && peek() == '?')
@@ -203,7 +205,7 @@ namespace ft
         return res;
     }
     
-    RegexComponentBase* RegexParser::charGroup()
+    RegexComponentBase* Regex::charGroup()
     {
         RegexComponentBase *res;
         if (hasMoreChars() && peek() == '^')
@@ -218,7 +220,7 @@ namespace ft
         return charGroupBody(res);
     }
 
-    RegexComponentBase* RegexParser::charGroupBody(RegexComponentBase *res)
+    RegexComponentBase* Regex::charGroupBody(RegexComponentBase *res)
     {
         RegexComponentBase *r = res;
         if (!hasMoreChars() || peek() == ']')
@@ -241,11 +243,9 @@ namespace ft
             return charGroupBody(res);
         }
     }
-    RegexComponentBase*     RegexParser::charGroupSkiped(char c, RegexComponentBase*res)
+    RegexComponentBase*     Regex::charGroupSkiped(char c, RegexComponentBase*res)
     {
-        if (c == '\\' || c == ']' || c == '^' || c == '$' || c == '-' || isRepeatChar(c))
-            res->addChar(c);
-        else if (c == 'd' || c == 'D')
+        if (c == 'd' || c == 'D')
             res->addRangeChar('0', '9');
         else if (c == 'w' || c == 'W')
         {
@@ -275,12 +275,14 @@ namespace ft
             res->addChar('\b');
         else if (c == 'a')
             res->addChar('\a');
-        else
+        else if (isalpha(c))
             throw InvalidRegexException("unexpected character after \\");
+        else
+            res->addChar(c);
         return res;
     }
 
-    RegexComponentBase* RegexParser::charGroupRange(char c, RegexComponentBase *res)
+    RegexComponentBase* Regex::charGroupRange(char c, RegexComponentBase *res)
     {
         if (hasMoreChars() && peek() == '\\')
             throw InvalidRegexException("unexpected character '\\'");        
@@ -300,7 +302,7 @@ namespace ft
     }
     // ^
     
-    RegexComponentBase *RegexParser::chr()
+    RegexComponentBase *Regex::chr()
     {
         if (isRepeatChar(peek()) || peek() == '{' || peek() == ')')
             throw InvalidRegexException("Unexpected character");
@@ -333,12 +335,12 @@ namespace ft
         return res;
     }
 
-    RegexComponentBase *RegexParser::construct_skiped_char()
+    RegexComponentBase *Regex::construct_skiped_char()
     {
         if (isdigit(peek()))
         {
             long long n = integer();
-            if (n > static_cast<long long>(inner_groups.size()))
+            if (n >= static_cast<long long>(inner_groups.size()))
                 throw InvalidRegexException("Invalid group reference");
             RegexBackReference *ref = new RegexBackReference(inner_groups[n]);
             return ref;
@@ -387,6 +389,11 @@ namespace ft
             r->addChar(' ');
             return r;
         }
+        else if (peek() == 'b')
+        {
+            next();
+            return new RegexWordBoundary();
+        }
         else if (peek() == 't')
         {
             next();
@@ -415,7 +422,7 @@ namespace ft
         else
         {
             char c = peek();
-            if (c == '\\' || c == '.' || c == '[' || c == ']' || c == '^' || c == '$' || c == '-' || isRepeatChar(c))
+            if (c == '\\' || c == '.' || c == '[' || c == ']' || c == '^' || c == '$' || c == '-' || isRepeatChar(c) || c == '/')
             {
                 next();
                 return new RegexGroup(c);
@@ -425,7 +432,7 @@ namespace ft
 
     }
     
-    long long RegexParser::integer()
+    long long Regex::integer()
     {
         std::string num;
         if (!hasMoreChars())
@@ -438,7 +445,7 @@ namespace ft
         return std::atoll(num.c_str());
     }
 
-    RegexComponentBase *RegexParser::parse()
+    RegexComponentBase *Regex::parse()
     {
 
         RegexStartOfGroup *group = new RegexStartOfGroup();
@@ -453,7 +460,7 @@ namespace ft
     }
 
     RegexComponentBase *
-    RegexParser::concat(RegexComponentBase *a, RegexComponentBase *b)
+    Regex::concat(RegexComponentBase *a, RegexComponentBase *b)
     {
         if (a->type == RegexComponentBase::CONCAT)
         {
@@ -475,7 +482,7 @@ namespace ft
     }
 
     RegexComponentBase *
-    RegexParser::alter(RegexComponentBase *a, RegexComponentBase *b)
+    Regex::alter(RegexComponentBase *a, RegexComponentBase *b)
     {
 
         if (a->type == RegexComponentBase::ALTERNATE)
@@ -498,12 +505,19 @@ namespace ft
         }
     }
 
-    RegexComponentBase *RegexParser::repeat(RegexComponentBase *a, char r)
+    RegexComponentBase *Regex::repeat(RegexComponentBase *a, char r)
     {
         if (r == '*')
-            return repeat(a, 0, RegexParser::Infinity);
+        {
+            if (hasMoreChars() && peek() == '?')
+            {
+                next();
+                return new RegexRepeatLazy(a, 0, Regex::Infinity);
+            }
+            return repeat(a, 0, Regex::Infinity);
+        }
         else if (r == '+')
-            return repeat(a, 1, RegexParser::Infinity);
+            return repeat(a, 1, Regex::Infinity);
         else if (r == '?')
             return repeat(a, 0, 1);
         else
@@ -511,11 +525,11 @@ namespace ft
     }
 
     RegexComponentBase *
-    RegexParser::repeat(RegexComponentBase *a, long long min, long long max)
+    Regex::repeat(RegexComponentBase *a, long long min, long long max)
     {
         if (min > max || min < 0 || max < 0)
             throw InvalidRegexException("Invalid repeat range");
-        if (max != RegexParser::Infinity && max > RegexParser::MaxRepeat)
+        if (max != Regex::Infinity && max > Regex::MaxRepeat)
             throw InvalidRegexException("Too many repeats (max: 1024)");
         return new RegexRepeat(a, min, max);
     }

@@ -9,7 +9,7 @@
 namespace ft
 {
 
-class RegexParser
+class Regex
 {
     std::string regex;
     std::string::const_iterator current;
@@ -19,16 +19,20 @@ class RegexParser
     std::vector <RegexStartOfLine *> startOfLines;
     std::vector <RegexStartOfGroup *> inner_groups;
 
+
 public:
     std::vector <std::string> groups;
-
-    RegexParser(const std::string &regex);
-    ~RegexParser();
-    bool                    match(std::string const&);
-    bool                    match(const char *);
+    
+    Regex(const std::string &regex);
+    ~Regex();
+    bool                        match(std::string const&);
+    bool                        match(const char *);
     std::vector<std::string >   matchAll(std::string const&);
     std::vector<std::string >   matchAll(const char*);
-
+    enum 
+    {
+        iCase = 4,
+    };
 private:
     char                    peek();
     char                    eat(char, const char*);
