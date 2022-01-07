@@ -411,33 +411,6 @@ namespace ft
 
     // END RegexEnd
 
-    // Start RegexEpsilon
-
-    RegexEpsilon::RegexEpsilon() : RegexComponentBase(EPSILON) {}
-
-    bool    RegexEpsilon::match(const char* &, unsigned long long, Functor*fn, const char*) const
-    {
-        return fn->run();
-    }
-
-    void    RegexEpsilon::addChild(RegexComponentBase *child)
-    {
-        throw ("RegexEpsilon::addChild() not implemented");
-    }
-
-    void    RegexEpsilon::addChar(char c)
-    {
-        throw ("RegexEpsilon::addChar() not implemented");
-    }
-
-    void    RegexEpsilon::addRangeChar(char from, char to)
-    {
-        throw ("RegexEpsilon::addRangeChar() not implemented");
-    }
-
-    // END RegexEpsilon
-
-
     // Start RegexBackReference
 
     RegexBackReference::RegexBackReference() : RegexComponentBase(BACK_REFERENCE) {}

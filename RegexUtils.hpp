@@ -65,7 +65,6 @@ namespace ft
             START_OF_GROUP,
             END_OF_GROUP,
             END,
-            EPSILON,
             BACK_REFERENCE,
         };
     protected:
@@ -220,20 +219,7 @@ namespace ft
             void    addRangeChar(char, char);
     };
 
-    struct RegexEpsilon : public RegexComponentBase
-    {
-        RegexEpsilon();
 
-        bool    match(const char *&, unsigned long long, Functor*, const char* = NULL) const;
-
-        private:
-            void    addChild(RegexComponentBase *child);
-            void    addChar(char);
-            void    addRangeChar(char, char);
-    };
-
-
-    // RegexBackReference
     struct RegexBackReference : public RegexComponentBase
     {
         RegexBackReference(RegexStartOfGroup *);
@@ -247,7 +233,6 @@ namespace ft
             void    addRangeChar(char, char);
     };
 
-    // RegexStartOfLine
     struct RegexStartOfLine : public RegexComponentBase
     {
         RegexStartOfLine();
@@ -261,7 +246,6 @@ namespace ft
             void    addRangeChar(char, char);
     };
 
-    // RegexEndOfLine
     struct RegexEndOfLine : public RegexComponentBase
     {
         RegexEndOfLine();

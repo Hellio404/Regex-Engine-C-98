@@ -480,40 +480,15 @@ namespace ft
 
         if (a->type == RegexComponentBase::ALTERNATE)
         {
-            std::vector<RegexComponentBase *> epsilons;
-            while (a->component.children->size()
-                &&  a->component.children->back()->type
-                    == RegexComponentBase::EPSILON)
-            {
-                RegexComponentBase *c = a->component.children->back();
-                a->component.children->pop_back();
-                epsilons.push_back(c);
-            }
+           
             a->addChild(b);
-            // add the epsilons back to the end
-            a->component.children->insert(a->component.children->end(),
-                epsilons.begin(), epsilons.end());
             return a;
         }
         else if (b->type == RegexComponentBase::ALTERNATE)
         {
-            std::vector<RegexComponentBase *> epsilons;
-            if (a->type == RegexComponentBase::ALTERNATE)
-                while (a->component.children->size() &&
-                    a->component.children->back()->type
-                        == RegexComponentBase::EPSILON)
-                {
-                    RegexComponentBase *c = a->component.children->back();
-                    a->component.children->pop_back();
-                    epsilons.push_back(c);
-                }
             b->component.children->insert(b->component.children->begin(), a);
-            // add the epsilons back to the end
-            b->component.children->insert(b->component.children->end(),
-                epsilons.begin(), epsilons.end());
             return b;
         }
-        
         else
         {
             RegexAlternate *res = new RegexAlternate();
@@ -542,21 +517,6 @@ namespace ft
             throw InvalidRegexException("Invalid repeat range");
         if (max != RegexParser::Infinity && max > RegexParser::MaxRepeat)
             throw InvalidRegexException("Too many repeats (max: 1024)");
-        
-        if (min == 0)
-        {
-            // I intreduce RegexEpsilon and doing this because of once issue
-            // if you have something like (a*|b)+c and you have to match ccc
-            // the you will get an infinite recursion yeeyks that's because
-            // a* will match nothing everytime and the regex will be 
-            // (NOTHING_MATCHED)+ so it will match nothing forever ;(
-            min = 1;
-            max = max == 0 ? 1 : max;
-            if (max != 1)
-                return alter(new RegexRepeat(a, min, max), new RegexEpsilon());
-            else
-                return alter(a, new RegexEpsilon());
-        }
         return new RegexRepeat(a, min, max);
     }
 
