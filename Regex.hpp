@@ -2,9 +2,12 @@
 
 #include <RegexUtils.hpp>
 #include <string>
+#include <cstring>
+#include <cstdlib>
 #include <vector>
 #include <limits>
 #include <exception>
+#include <iostream>
 
 namespace ft
 {
@@ -16,9 +19,15 @@ class Regex
     RegexComponentBase* root;
     static const long long Infinity = __LONG_LONG_MAX__;
     static const long long MaxRepeat = 1024;
-    std::vector <RegexStartOfLine *> startOfLines;
-    std::vector <RegexStartOfGroup *> inner_groups;
-
+    std::vector <RegexStartOfGroup *>   inner_groups;
+    bool                                allowed_repeat;
+    struct ret_t
+    {
+        long long min;
+        long long max;
+        RegexComponentBase* c;
+        ret_t(long long , long long , RegexComponentBase* );
+    };
 
 public:
     std::vector <std::string> groups;
@@ -44,25 +53,26 @@ private:
     std::pair<long long, long long> repeat_range();
 
 
-    RegexComponentBase*     expr();
-    RegexComponentBase*     term();
-    RegexComponentBase*     factor();
-    RegexComponentBase*     group();
-    RegexComponentBase*     atom();
+    ret_t                   expr();
+    ret_t                   term();
+    ret_t                   factor();
+    ret_t                   group();
+    ret_t                   atom();
     RegexComponentBase*     chr();
     RegexComponentBase*     charGroup();
     RegexComponentBase*     charGroupBody(RegexComponentBase*);
     RegexComponentBase*     charGroupSkiped(char, RegexComponentBase*);
     RegexComponentBase*     charGroupRange(char, RegexComponentBase*);
 
-    RegexComponentBase*     repeat(RegexComponentBase *, long long, long long, bool = true);
-    RegexComponentBase*     repeat(RegexComponentBase *, char);
-    RegexComponentBase*     concat(RegexComponentBase *, RegexComponentBase *);
-    RegexComponentBase*     alter(RegexComponentBase *, RegexComponentBase *);
+    ret_t                   repeat(ret_t, long long, long long, bool = true);
+    ret_t                   repeat(ret_t, char);
+    ret_t                   concat(ret_t, ret_t);
+    ret_t                   alter(ret_t, ret_t);
 
     RegexComponentBase*     construct_skiped_char();
+    ret_t                   expr_without_repeat();
 
-    RegexComponentBase*     parse();
+    RegexComponentBase      *parse();
 
 public:
     class InvalidRegexException : public std::exception

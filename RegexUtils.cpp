@@ -56,6 +56,9 @@ namespace ft
         case END_OF_GROUP:
             // no need to allocate anything it only needs pointer to groupStart
             break; 
+        case LOOK_BEHIND:
+            this->component.range = new RepeatedRange();
+            break;
         default:
             break;
         }
@@ -85,6 +88,8 @@ namespace ft
             break;
         case END_OF_GROUP:
             break;
+        case LOOK_BEHIND:
+            delete this->component.range;
         default:
             break;
         }
@@ -289,7 +294,7 @@ namespace ft
         unsigned long long min,
         unsigned long long max) : RegexComponentBase(REPEAT)
     {
-        this->component.range->toRepeat = child1;
+        this->component.range->child = child1;
         this->component.range->min = min;
         this->component.range->max = max;
     }
@@ -297,7 +302,7 @@ namespace ft
     RegexRepeat::RegexRepeat(RepeatedRange r) : RegexComponentBase(REPEAT)
     {
 
-        this->component.range->toRepeat = r.toRepeat;
+        this->component.range->child = r.child;
         this->component.range->min = r.min;
         this->component.range->max = r.max;
     }
@@ -311,7 +316,7 @@ namespace ft
             return fn->run();
         
         Functor newFn(this, ptr, ctx + 1, info, fn, ptr);
-        bool    res = this->component.range->toRepeat->match(ptr, 0, info, &newFn);
+        bool    res = this->component.range->child->match(ptr, 0, info, &newFn);
 
         if (res)
             return res;
@@ -337,7 +342,7 @@ namespace ft
 
     RegexRepeat::~RegexRepeat()
     {
-        delete this->component.range->toRepeat;
+        delete this->component.range->child;
     }
 
     // END RegexRepeat
@@ -353,7 +358,7 @@ namespace ft
         unsigned long long min,
         unsigned long long max) : RegexComponentBase(REPEAT)
     {
-        this->component.range->toRepeat = child1;
+        this->component.range->child = child1;
         this->component.range->min = min;
         this->component.range->max = max;
     }
@@ -361,7 +366,7 @@ namespace ft
     RegexRepeatLazy::RegexRepeatLazy(RepeatedRange r) : RegexComponentBase(REPEAT)
     {
 
-        this->component.range->toRepeat = r.toRepeat;
+        this->component.range->child = r.child;
         this->component.range->min = r.min;
         this->component.range->max = r.max;
     }
@@ -377,7 +382,7 @@ namespace ft
         if (!matched && ctx < this->component.range->max)
         {
             Functor newFn(this, ptr, ctx + 1, info, fn, ptr);
-            return this->component.range->toRepeat->match(ptr, 0, info, &newFn);
+            return this->component.range->child->match(ptr, 0, info, &newFn);
         }
         return matched;
     }
@@ -399,7 +404,7 @@ namespace ft
 
     RegexRepeatLazy::~RegexRepeatLazy()
     {
-        delete this->component.range->toRepeat;
+        delete this->component.range->child;
     }
 
     // END RegexRepeatLazy
@@ -715,7 +720,103 @@ namespace ft
 
     // END RegexNonWordBoundary
 
+    // Start RegexPositiveLookBehind
 
+    RegexPositiveLookBehind::RegexPositiveLookBehind() : 
+        RegexComponentBase(LOOK_BEHIND) {}
+
+    bool    RegexPositiveLookBehind::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*prev) const
+    {
+        if (this->component.range->min + ctx > this->component.range->max)
+            return false;
+        
+        if (prev != NULL && prev != ptr)
+            return false;
+        if (prev == ptr)
+            return fn->run();
+        
+        if (info->startOfStr + ctx + this->component.range->min > ptr)
+            return false;
+
+        Functor newFn(this, ptr, ctx, info, fn, ptr);
+        ptr -= this->component.range->min + ctx;
+        if (this->component.range->child->match(ptr, ctx, info, &newFn))
+            return true;
+        ptr += this->component.range->min + ctx;
+        
+        return this->match(ptr, ctx + 1, info, fn);
+    }
+
+    void    RegexPositiveLookBehind::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexPositiveLookBehind::addChild() not implemented");
+    }
+
+    void    RegexPositiveLookBehind::addChar(char c)
+    {
+        throw ("RegexPositiveLookBehind::addChar() not implemented");
+    }
+
+    void    RegexPositiveLookBehind::addRangeChar(char from, char to)
+    {
+        throw ("RegexPositiveLookBehind::addRangeChar() not implemented");
+    }
+
+    RegexPositiveLookBehind::~RegexPositiveLookBehind() 
+    {
+        delete this->component.range->child;
+    }
+
+    // END RegexPositiveLookBehind
+
+    // // Start RegexNegativeLookBehind
+
+    // RegexNegativeLookBehind::RegexNegativeLookBehind() : 
+    //     RegexComponentBase(LOOK_BEHIND) {}
+
+    // bool    RegexNegativeLookBehind::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*prev) const
+    // {
+    //     // if (this->component.range->min + ctx > this->component.range->max)
+    //     //     return false;
+        
+    //     // if (prev != NULL && prev != ptr)
+    //     //     return false;
+    //     // if (prev == ptr)
+    //     //     return fn->run();
+        
+    //     // if (info->startOfStr + ctx + this->component.range->min > ptr)
+    //     //     return false;
+
+    //     Functor newFn(this, ptr, ctx + 1, info, fn, prev);
+    //     ptr -= this->component.range->min + ctx;
+    //     if (this->component.range->child->match(ptr, ctx, info, &newFn))
+
+    //     // ptr += this->component.range->min + ctx;
+        
+    //     // this->match(ptr, ctx + 1, info, fn);
+    // }
+
+    // void    RegexNegativeLookBehind::addChild(RegexComponentBase *child)
+    // {
+    //     throw ("RegexNegativeLookBehind::addChild() not implemented");
+    // }
+
+    // void    RegexNegativeLookBehind::addChar(char c)
+    // {
+    //     throw ("RegexNegativeLookBehind::addChar() not implemented");
+    // }
+
+    // void    RegexNegativeLookBehind::addRangeChar(char from, char to)
+    // {
+    //     throw ("RegexNegativeLookBehind::addRangeChar() not implemented");
+    // }
+
+    // RegexNegativeLookBehind::~RegexNegativeLookBehind() 
+    // {
+    //     delete this->component.range->child;
+    // }
+
+    // // END RegexNegativeLookBehind
 
 }// namespace ft
 

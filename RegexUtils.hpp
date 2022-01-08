@@ -23,7 +23,7 @@ namespace ft
 
     struct RepeatedRange
     {
-        RegexComponentBase  *toRepeat;
+        RegexComponentBase  *child;
         unsigned int        min;
         unsigned int        max;
     };
@@ -74,6 +74,8 @@ namespace ft
             END,
             BACK_REFERENCE,
             WORD_BOUNDARY,
+            LOOK_BEHIND,
+            LOOK_AHEAD,
         };
 
         enum 
@@ -310,5 +312,29 @@ namespace ft
             void    addChar(char);
             void    addRangeChar(char, char);
     };
+
+    struct RegexPositiveLookBehind : public RegexComponentBase
+    {
+        RegexPositiveLookBehind();
+        ~RegexPositiveLookBehind();
+        bool    match(const char *&, unsigned long long, MatchInfo *, Functor*, const char* = NULL) const;
+
+        private:
+            void    addChild(RegexComponentBase *child);
+            void    addChar(char);
+            void    addRangeChar(char, char);
+    };
+
+    // struct RegexNegativeLookBehind : public RegexComponentBase
+    // {
+    //     RegexNegativeLookBehind();
+    //     ~RegexNegativeLookBehind();
+    //     bool    match(const char *&, unsigned long long, MatchInfo *, Functor*, const char* = NULL) const;
+
+    //     private:
+    //         void    addChild(RegexComponentBase *child);
+    //         void    addChar(char);
+    //         void    addRangeChar(char, char);
+    // };
 
 } // namespace ft

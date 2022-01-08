@@ -1,5 +1,4 @@
 #include <Regex.hpp>
-
 namespace ft
 {
     Regex::InvalidRegexException::InvalidRegexException
@@ -11,10 +10,12 @@ namespace ft
     {
         return error;
     }
-  
+    
+    Regex::ret_t::ret_t(long long min, long long max, RegexComponentBase* c):
+         min(min), max(max), c(c) {}
 
     Regex::Regex(const std::string &regx) : 
-        regex(regx), current(regex.begin())
+        regex(regx), current(regex.begin()), allowed_repeat(true)
     {
         this->root = this->parse();
     }
@@ -108,49 +109,55 @@ namespace ft
     }
 
     // alternate here
-    RegexComponentBase *Regex::expr()
+    Regex::ret_t
+    Regex::expr()
     {
-        RegexComponentBase *t = term();
+        ret_t t = term();
         if (hasMoreChars() && peek() == '|')
         {
             eat('|', "expected '|'");
-            RegexComponentBase *e = expr();
+            ret_t e = expr();
             return alter(t, e);
         }
         return t;
     }
 
     // concat here
-    RegexComponentBase *Regex::term()
+    Regex::ret_t
+    Regex::term()
     {
-        RegexComponentBase *f = factor();
+        ret_t f = factor();
         if (hasMoreChars() && peek() != ')' && peek() != '|')
         {
-            RegexComponentBase *t = term();
+            ret_t t = term();
             return concat(f, t);
         }
 
         return f;
     }
 
-    RegexComponentBase *Regex::factor()
+    Regex::ret_t
+    Regex::factor()
     {
-        RegexComponentBase *a = atom();
-        RegexComponentBase *res = a;
-
+        ret_t a = atom();
+        // disable repeat for (?<=...) and (?<!...)
         if (hasMoreChars() && isRepeatChar(peek()))
         {
+            if (!allowed_repeat)
+                throw InvalidRegexException("Unexpected repeat inside lookup group");
             char r = next();
-            res = repeat(a, r);
+            return repeat(a, r);
         }
         else if (hasMoreChars() && peek() == '{')
         {
+            if (!allowed_repeat)
+                throw InvalidRegexException("Unexpected repeat inside lookup group");
             eat('{', "expected '{'");
             std::pair<long long, long long> r = repeat_range();
             eat('}', "expected '}'");
-            res = repeat(a, r.first, r.second);
+            return repeat(a, r.first, r.second);
         }
-        return res;
+        return a;
     }
 
     std::pair<long long, long long> Regex::repeat_range()
@@ -169,47 +176,83 @@ namespace ft
         return std::make_pair(min, max);
     }
 
-    RegexComponentBase *Regex::atom()
+    Regex::ret_t
+    Regex::atom()
     {
-        RegexComponentBase *res;
         if (hasMoreChars() && peek() == '(')
         {
             eat('(', "expected '('");
-            res = group();
+            ret_t const& grp = group();
             eat(')', "expected ')'");
-            return res;
+            return grp;
         }
         else if (hasMoreChars() && peek() == '[')
         {
             eat('[', "expected '['");
-            res = charGroup();
+            RegexComponentBase *res = charGroup();
             eat(']', "expected ']'");
-
-            return res;
+            return ret_t(1, 1 , res);
         }
-        return chr();
+        return ret_t(1, 1, chr());
     }
 
-    RegexComponentBase *Regex::group()
+    Regex::ret_t
+    Regex::expr_without_repeat()
     {
-        RegexComponentBase *res;
+        allowed_repeat = false;
+        ret_t ret = expr();
+        allowed_repeat = true;
+        return ret;
+    }
+
+    Regex::ret_t
+    Regex::group()
+    {
         if (hasMoreChars() && peek() == '?')
         {
             eat('?', "expected '?'");
-            if (next() == ':')
+            char c = next();
+            if (c == ':')
                 return expr();
+            else if (c == '<')
+            {
+                c = next();
+                if (c != '=' && c != '!')
+                    throw InvalidRegexException("unexpected char after '?<'");
+                ret_t ret = expr_without_repeat();
+                if (c == '=')
+                {
+                    RegexComponentBase *res = new RegexPositiveLookBehind();
+                    res->component.range->child = ret.c;
+                    res->component.range->min = ret.min;
+                    res->component.range->max = ret.max;
+                    return ret_t(0, 0, res);
+                }
+                else if (c == '!')
+                {
+                    ret_t ret = expr_without_repeat();
+                }
+            }
+            else if (c == '=')
+            {
+                ret_t ret = expr_without_repeat();
+            }
+            else if (c == '!')
+            {
+                ret_t ret = expr_without_repeat();
+            }
             else
                 throw InvalidRegexException("unexpected char after '?'");
         }
         RegexStartOfGroup *group = new RegexStartOfGroup();
         inner_groups.push_back(group);
-        res = expr();
         RegexEndOfGroup *end = new RegexEndOfGroup(group);
-        res = concat(group, concat(res, end));
-        return res;
+        ret_t const& res = expr();
+        return concat(ret_t(0, 0, group), concat(res, ret_t(0, 0, end)));
     }
     
-    RegexComponentBase* Regex::charGroup()
+    RegexComponentBase*
+    Regex::charGroup()
     {
         RegexComponentBase *res;
         if (hasMoreChars() && peek() == '^')
@@ -224,7 +267,8 @@ namespace ft
         return charGroupBody(res);
     }
 
-    RegexComponentBase* Regex::charGroupBody(RegexComponentBase *res)
+    RegexComponentBase*
+    Regex::charGroupBody(RegexComponentBase *res)
     {
         RegexComponentBase *r = res;
         if (!hasMoreChars() || peek() == ']')
@@ -242,12 +286,14 @@ namespace ft
                 res->addChar(c);
             else
             {
-                charGroupSkiped(next(), res); // TODO: handle escape
+                charGroupSkiped(next(), res);
             }
             return charGroupBody(res);
         }
     }
-    RegexComponentBase*     Regex::charGroupSkiped(char c, RegexComponentBase*res)
+
+    RegexComponentBase*
+    Regex::charGroupSkiped(char c, RegexComponentBase*res)
     {
         if (c == 'd' || c == 'D')
             res->addRangeChar('0', '9');
@@ -286,7 +332,8 @@ namespace ft
         return res;
     }
 
-    RegexComponentBase* Regex::charGroupRange(char c, RegexComponentBase *res)
+    RegexComponentBase* 
+    Regex::charGroupRange(char c, RegexComponentBase *res)
     {
         if (hasMoreChars() && peek() == '\\')
             throw InvalidRegexException("unexpected character '\\'");        
@@ -306,7 +353,8 @@ namespace ft
     }
     // ^
     
-    RegexComponentBase *Regex::chr()
+    RegexComponentBase*
+    Regex::chr()
     {
         if (isRepeatChar(peek()) || peek() == '{' || peek() == ')')
             throw InvalidRegexException("Unexpected character");
@@ -325,8 +373,7 @@ namespace ft
         else if (peek() == '^')
         {
             eat('^', "expected '^'");
-            startOfLines.push_back(new RegexStartOfLine());
-            return startOfLines.back();
+            return new RegexStartOfLine();
         }
         else if (peek() == '$')
         {
@@ -339,8 +386,10 @@ namespace ft
         return res;
     }
 
-    RegexComponentBase *Regex::construct_skiped_char()
+    RegexComponentBase*
+    Regex::construct_skiped_char()
     {
+        // TODO: disable backrefs inside (?<=...) and (?<!...)
         if (isdigit(peek()))
         {
             long long n = integer();
@@ -447,70 +496,72 @@ namespace ft
 
         while (hasMoreChars() && isdigit(peek()))
             num += next();
-        return std::atoll(num.c_str());
+        return std::atol(num.c_str());
     }
 
-    RegexComponentBase *Regex::parse()
+    RegexComponentBase*
+    Regex::parse()
     {
 
         RegexStartOfGroup *group = new RegexStartOfGroup();
         RegexEndOfGroup *end = new RegexEndOfGroup(group);
         inner_groups.push_back(group);
-        RegexComponentBase *res = expr();
-        res = concat(group, concat(res, end));
+        ret_t   res = expr();
+        res = concat(ret_t(0, 0, group), concat(res, ret_t(0, 0, end)));
         if (hasMoreChars())
             throw InvalidRegexException("Unexpected character"
                 " at the end of Regex");
-        return res;
+        return res.c;
     }
 
-    RegexComponentBase *
-    Regex::concat(RegexComponentBase *a, RegexComponentBase *b)
+    Regex::ret_t
+    Regex::concat(ret_t a, ret_t b)
     {
-        if (a->type == RegexComponentBase::CONCAT)
+        if (a.c->type == RegexComponentBase::CONCAT)
         {
-            a->addChild(b);
-            return a;
+            a.c->addChild(b.c);
+            return ret_t(a.min + b.min, a.max + b.max, a.c);
         }
-        else if (b->type == RegexComponentBase::CONCAT)
+        else if (b.c->type == RegexComponentBase::CONCAT)
         {
-            b->component.children->insert(b->component.children->begin(), a);
-            return b;
+            b.c->component.children->insert(b.c->component.children->begin(), a.c);
+            return ret_t(a.min + b.min, a.max + b.max, b.c);
         }
         else
         {
             RegexConcat *res = new RegexConcat();
-            res->addChild(a);
-            res->addChild(b);
-            return res;
+            res->addChild(a.c);
+            res->addChild(b.c);
+            return ret_t(a.min + b.min, a.max + b.max, res);
         }
     }
 
-    RegexComponentBase *
-    Regex::alter(RegexComponentBase *a, RegexComponentBase *b)
+    Regex::ret_t
+    Regex::alter(ret_t a, ret_t b)
     {
 
-        if (a->type == RegexComponentBase::ALTERNATE)
+        if (a.c->type == RegexComponentBase::ALTERNATE)
         {
            
-            a->addChild(b);
-            return a;
+            a.c->addChild(b.c);
+            return ret_t(std::min(a.min, b.min), std::max(a.max, b.max), a.c);
         }
-        else if (b->type == RegexComponentBase::ALTERNATE)
+        else if (b.c->type == RegexComponentBase::ALTERNATE)
         {
-            b->component.children->insert(b->component.children->begin(), a);
-            return b;
+            b.c->component.children->insert(b.c->component.children->begin(), a.c);
+            return  ret_t(std::min(a.min, b.min), std::max(a.max, b.max), b.c);
         }
         else
         {
             RegexAlternate *res = new RegexAlternate();
-            res->addChild(a);
-            res->addChild(b);
-            return res;
+            res->addChild(a.c);
+            res->addChild(b.c);
+            return  ret_t(std::min(a.min, b.min), std::max(a.max, b.max), res);
         }
     }
 
-    RegexComponentBase *Regex::repeat(RegexComponentBase *a, char r)
+    Regex::ret_t
+    Regex::repeat(ret_t a, char r)
     {
         if (r == '*')
             return repeat(a, 0, Regex::Infinity);
@@ -522,8 +573,8 @@ namespace ft
             throw InvalidRegexException("Unexpected character");
     }
 
-    RegexComponentBase *
-    Regex::repeat(RegexComponentBase *a, long long min, long long max, bool checkLazy)
+    Regex::ret_t
+    Regex::repeat(ret_t a, long long min, long long max, bool checkLazy)
     {
         if (min > max || min < 0 || max < 0)
             throw InvalidRegexException("Invalid repeat range");
@@ -532,9 +583,17 @@ namespace ft
         if (checkLazy && hasMoreChars() && peek() == '?')
         {
             next();
-            return new RegexRepeatLazy(a, min, max);
+            return ret_t(
+                std::min(min * a.min, static_cast<long long>(Regex::Infinity)), 
+                std::min(max * a.max, static_cast<long long>(Regex::Infinity)),
+                new RegexRepeatLazy(a.c, min, max)
+            );
         }
-        return new RegexRepeat(a, min, max);
+        return ret_t(
+                std::min(min * a.min, static_cast<long long>(Regex::Infinity)), 
+                std::min(max * a.max, static_cast<long long>(Regex::Infinity)),
+                new RegexRepeat(a.c, min, max)
+        );
     }
 
 }

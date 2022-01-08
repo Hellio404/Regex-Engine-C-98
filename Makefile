@@ -1,6 +1,6 @@
 NAME    = regex
 CC      = g++
-FLAGS   = -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -g 
+FLAGS   = -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -g -std=c++98 -fsanitize=address
 HEADS   = Regex.hpp 
 SRCS = Regex.cpp RegexUtils.cpp main.cpp
 
