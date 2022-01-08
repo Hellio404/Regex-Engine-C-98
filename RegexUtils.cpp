@@ -621,7 +621,7 @@ namespace ft
 
     bool    RegexEndOfLine::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
-        if (ptr != info->endOfStr || *ptr == '\n')
+        if (ptr == info->endOfStr || *ptr == '\n')
             return fn->run();
         return false;
     }
@@ -651,12 +651,12 @@ namespace ft
 
     bool    RegexWordBoundary::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
-        if ((ptr == info->startOfStr &&  (isalpha(*ptr) || *ptr == '_'))
+        if ((ptr == info->startOfStr &&  (isalnum(*ptr) || *ptr == '_'))
             || (ptr == info->endOfStr 
-                &&  (isalpha(*(ptr - 1)) || *(ptr - 1) == '_'))
+                &&  (isalnum(*(ptr - 1)) || *(ptr - 1) == '_'))
             || (ptr != info->startOfStr && ptr != info->endOfStr 
-                && (isalpha(*(ptr - 1)) || *(ptr - 1) == '_') 
-                    ^ (isalpha(*ptr) || *ptr == '_')))
+                && (isalnum(*(ptr - 1)) || *(ptr - 1) == '_') 
+                    ^ (isalnum(*ptr) || *ptr == '_')))
             return fn->run();
         return false;
     }
@@ -686,12 +686,12 @@ namespace ft
 
     bool    RegexNonWordBoundary::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
-        if (!((ptr == info->startOfStr &&  (isalpha(*ptr) || *ptr == '_'))
+        if (!((ptr == info->startOfStr &&  (isalnum(*ptr) || *ptr == '_'))
             || (ptr == info->endOfStr 
-                &&  (isalpha(*(ptr - 1)) || *(ptr - 1) == '_'))
+                &&  (isalnum(*(ptr - 1)) || *(ptr - 1) == '_'))
             || (ptr != info->startOfStr && ptr != info->endOfStr 
-                && (isalpha(*(ptr - 1)) || *(ptr - 1) == '_') 
-                    ^ (isalpha(*ptr) || *ptr == '_'))))
+                && (isalnum(*(ptr - 1)) || *(ptr - 1) == '_') 
+                    ^ (isalnum(*ptr) || *ptr == '_'))))
             return fn->run();
         return false;
     }

@@ -55,7 +55,7 @@ private:
     RegexComponentBase*     charGroupSkiped(char, RegexComponentBase*);
     RegexComponentBase*     charGroupRange(char, RegexComponentBase*);
 
-    RegexComponentBase*     repeat(RegexComponentBase *, long long, long long);
+    RegexComponentBase*     repeat(RegexComponentBase *, long long, long long, bool = true);
     RegexComponentBase*     repeat(RegexComponentBase *, char);
     RegexComponentBase*     concat(RegexComponentBase *, RegexComponentBase *);
     RegexComponentBase*     alter(RegexComponentBase *, RegexComponentBase *);

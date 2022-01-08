@@ -3,7 +3,9 @@
 namespace ft
 {
     Regex::InvalidRegexException::InvalidRegexException
-        (const char* error): error(error) {}
+        (const char* error): error(error) {
+            
+        }
 
     const char* Regex::InvalidRegexException::what() const throw()
     {
@@ -145,8 +147,8 @@ namespace ft
         {
             eat('{', "expected '{'");
             std::pair<long long, long long> r = repeat_range();
-            res = repeat(a, r.first, r.second);
             eat('}', "expected '}'");
+            res = repeat(a, r.first, r.second);
         }
         return res;
     }
@@ -429,12 +431,8 @@ namespace ft
         else
         {
             char c = peek();
-            if (c == '\\' || c == '.' || c == '[' || c == ']' || c == '^' || c == '$' || c == '-' || isRepeatChar(c) || c == '/')
-            {
-                next();
-                return new RegexGroup(c);
-            }
-            throw InvalidRegexException("Unexpected character after \\");
+            next();
+            return new RegexGroup(c);
         }
 
     }
@@ -515,29 +513,27 @@ namespace ft
     RegexComponentBase *Regex::repeat(RegexComponentBase *a, char r)
     {
         if (r == '*')
-        {
-            if (hasMoreChars() && peek() == '?')
-            {
-                next();
-                return new RegexRepeatLazy(a, 0, Regex::Infinity);
-            }
             return repeat(a, 0, Regex::Infinity);
-        }
         else if (r == '+')
             return repeat(a, 1, Regex::Infinity);
         else if (r == '?')
-            return repeat(a, 0, 1);
+            return repeat(a, 0, 1, false);
         else
             throw InvalidRegexException("Unexpected character");
     }
 
     RegexComponentBase *
-    Regex::repeat(RegexComponentBase *a, long long min, long long max)
+    Regex::repeat(RegexComponentBase *a, long long min, long long max, bool checkLazy)
     {
         if (min > max || min < 0 || max < 0)
             throw InvalidRegexException("Invalid repeat range");
         if (max != Regex::Infinity && max > Regex::MaxRepeat)
             throw InvalidRegexException("Too many repeats (max: 1024)");
+        if (checkLazy && hasMoreChars() && peek() == '?')
+        {
+            next();
+            return new RegexRepeatLazy(a, min, max);
+        }
         return new RegexRepeat(a, min, max);
     }
 

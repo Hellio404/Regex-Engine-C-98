@@ -1,8 +1,8 @@
 NAME    = regex
 CC      = g++
-FLAGS   = -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -g -fsanitize=address
+FLAGS   = -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -g 
 HEADS   = Regex.hpp 
-SRCS = Regex.cpp RegexUtils.cpp
+SRCS = Regex.cpp RegexUtils.cpp main.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
