@@ -72,7 +72,7 @@ namespace ft
             delete this->component.chars;
             break;
         case REPEAT:
-            delete this->component.children;
+            delete this->component.range;
             break;
         case CONCAT:
             delete this->component.children;
@@ -140,6 +140,7 @@ namespace ft
         throw ("RegexGroup::addChild() not implemented");
     }
 
+    RegexGroup::~RegexGroup() {}
 
     // END RegexGroup
 
@@ -192,6 +193,8 @@ namespace ft
     {
         throw ("RegexInverseGroup::addChild() not implemented");
     }
+
+    RegexInverseGroup::~RegexInverseGroup() {}
     // END RegexInverseGroup
 
     // Start RegexConcat
@@ -224,6 +227,12 @@ namespace ft
     void    RegexConcat::addRangeChar(char from, char to)
     {
         throw ("RegexConcat::addRangeChar() not implemented");
+    }
+
+    RegexConcat::~RegexConcat() 
+    {
+        for (size_t i = 0; i < this->component.children->size(); i++)
+            delete this->component.children->at(i);
     }
     // END RegexConcat
 
@@ -259,6 +268,12 @@ namespace ft
     void    RegexAlternate::addRangeChar(char from, char to)
     {
         throw ("RegexAlternate::addRangeChar() not implemented");
+    }
+
+    RegexAlternate::~RegexAlternate()
+    {
+        for (size_t i = 0; i < this->component.children->size(); i++)
+            delete this->component.children->at(i);
     }
 
     // END RegexAlternate
@@ -320,6 +335,11 @@ namespace ft
         throw ("RegexRepeat::addRangeChar() not implemented");
     }
 
+    RegexRepeat::~RegexRepeat()
+    {
+        delete this->component.range->toRepeat;
+    }
+
     // END RegexRepeat
 
     // Start RegexRepeatLazy
@@ -377,6 +397,11 @@ namespace ft
         throw ("RegexRepeatLazy::addRangeChar() not implemented");
     }
 
+    RegexRepeatLazy::~RegexRepeatLazy()
+    {
+        delete this->component.range->toRepeat;
+    }
+
     // END RegexRepeatLazy
 
     // Start RegexStartOfGroup
@@ -427,6 +452,9 @@ namespace ft
     {
         throw ("RegexStartOfGroup::addRangeChar() not implemented");
     }
+
+    RegexStartOfGroup::~RegexStartOfGroup() {}
+
     // END RegexStartOfGroup
 
     // Start RegexEndOfGroup
@@ -474,6 +502,8 @@ namespace ft
         throw ("RegexEndOfGroup::addRangeChar() not implemented");
     }
 
+    RegexEndOfGroup::~RegexEndOfGroup() {}
+
     // END RegexEndOfGroup
 
 
@@ -499,6 +529,8 @@ namespace ft
     {
         throw ("RegexEnd::addRangeChar() not implemented");
     }
+
+    RegexEnd::~RegexEnd() {}
 
     // END RegexEnd
 
@@ -544,6 +576,8 @@ namespace ft
         throw ("RegexBackReference::addRangeChar() not implemented");
     }
 
+    RegexBackReference::~RegexBackReference() {}
+
     // END RegexBackReference
 
     // Start RegexStartOfLine
@@ -577,6 +611,8 @@ namespace ft
         throw ("RegexStartOfLine::addRangeChar() not implemented");
     }
 
+    RegexStartOfLine::~RegexStartOfLine() {}
+
     // END RegexStartOfLine
 
     // Start RegexEndOfLine
@@ -604,6 +640,8 @@ namespace ft
     {
         throw ("RegexEndOfLine::addRangeChar() not implemented");
     }
+
+    RegexEndOfLine::~RegexEndOfLine() {}
 
     // END RegexEndOfLine
 
@@ -638,7 +676,46 @@ namespace ft
         throw ("RegexWordBoundary::addRangeChar() not implemented");
     }
 
+    RegexWordBoundary::~RegexWordBoundary() {}
+
     // END RegexWordBoundary
+
+    // Start RegexNonWordBoundary
+
+    RegexNonWordBoundary::RegexNonWordBoundary() : RegexComponentBase(WORD_BOUNDARY) {}
+
+    bool    RegexNonWordBoundary::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    {
+        if (!((ptr == info->startOfStr &&  (isalpha(*ptr) || *ptr == '_'))
+            || (ptr == info->endOfStr 
+                &&  (isalpha(*(ptr - 1)) || *(ptr - 1) == '_'))
+            || (ptr != info->startOfStr && ptr != info->endOfStr 
+                && (isalpha(*(ptr - 1)) || *(ptr - 1) == '_') 
+                    ^ (isalpha(*ptr) || *ptr == '_'))))
+            return fn->run();
+        return false;
+    }
+
+    void    RegexNonWordBoundary::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexNonWordBoundary::addChild() not implemented");
+    }
+
+    void    RegexNonWordBoundary::addChar(char c)
+    {
+        throw ("RegexNonWordBoundary::addChar() not implemented");
+    }
+
+    void    RegexNonWordBoundary::addRangeChar(char from, char to)
+    {
+        throw ("RegexNonWordBoundary::addRangeChar() not implemented");
+    }
+
+    RegexNonWordBoundary::~RegexNonWordBoundary() {}
+
+    // END RegexNonWordBoundary
+
+
 
 }// namespace ft
 

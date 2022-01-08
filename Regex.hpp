@@ -1,42 +1,84 @@
 #pragma once
-#include <string>
-#include <exception>
-#include <vector>
+
 #include <RegexUtils.hpp>
-#include <iostream>
+#include <string>
+#include <vector>
+#include <limits>
+#include <exception>
+
 namespace ft
 {
-    class Regex
+
+class Regex
+{
+    std::string regex;
+    std::string::const_iterator current;
+    RegexComponentBase* root;
+    static const long long Infinity = __LONG_LONG_MAX__;
+    static const long long MaxRepeat = 1024;
+    std::vector <RegexStartOfLine *> startOfLines;
+    std::vector <RegexStartOfGroup *> inner_groups;
+
+
+public:
+    std::vector <std::string> groups;
+    
+    Regex(const std::string &regex);
+    ~Regex();
+    bool                        match(std::string const&);
+    bool                        match(const char *);
+    std::vector<std::string >   matchAll(std::string const&);
+    std::vector<std::string >   matchAll(const char*);
+    enum 
     {
-        Regex();
-    public:
-        Regex(const std::string &pattern);
-        ~Regex();
-
-        void check_concatenation(int, std::vector<char> &);
-
-        static unsigned int max_nfa_stack_size;
-
-        std::string pattern;
-    private:
-      
-        void execute_higher_priority_operator(std::vector<char> &, int,
-            std::vector<Frag> &, unsigned int &, size_t);
-        void dispatch_operator(int operator_type,
-            std::vector<Frag> &, unsigned int &, size_t);
-        int get_opp_code(char);
-
-        void alternation(std::vector<Frag> &, unsigned int &, size_t);
-        void concatenation(std::vector<Frag> &, unsigned int &, size_t);
-        void repetition_star(std::vector<Frag> &, unsigned int &, size_t);
-
-        // Exception classes
-    public:
-        class MaxNfaStackSizeReachedException : public std::exception
-        {
-        public:
-            MaxNfaStackSizeReachedException();
-            virtual const char *what() const throw();
-        };
+        iCase = 4,
     };
-}
+private:
+    char                    peek();
+    char                    eat(char, const char*);
+    char                    next();
+    bool                    hasMoreChars();
+    bool                    isRepeatChar(char);
+
+    long long               integer();
+    std::pair<long long, long long> repeat_range();
+
+
+    RegexComponentBase*     expr();
+    RegexComponentBase*     term();
+    RegexComponentBase*     factor();
+    RegexComponentBase*     group();
+    RegexComponentBase*     atom();
+    RegexComponentBase*     chr();
+    RegexComponentBase*     charGroup();
+    RegexComponentBase*     charGroupBody(RegexComponentBase*);
+    RegexComponentBase*     charGroupSkiped(char, RegexComponentBase*);
+    RegexComponentBase*     charGroupRange(char, RegexComponentBase*);
+
+    RegexComponentBase*     repeat(RegexComponentBase *, long long, long long);
+    RegexComponentBase*     repeat(RegexComponentBase *, char);
+    RegexComponentBase*     concat(RegexComponentBase *, RegexComponentBase *);
+    RegexComponentBase*     alter(RegexComponentBase *, RegexComponentBase *);
+
+    RegexComponentBase*     construct_skiped_char();
+
+    RegexComponentBase*     parse();
+
+public:
+    class InvalidRegexException : public std::exception
+    {
+        const char* error;
+    public:
+        InvalidRegexException(const char* error);
+        const char* what() const throw();
+    };
+};
+
+} // namespace ft
+
+/*
+
+ab(c*|d)e\1 abccccceccccc
+
+
+*/
