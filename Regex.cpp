@@ -582,7 +582,7 @@ namespace ft
         else if (r == '+')
             return repeat(a, 1, Regex::Infinity);
         else if (r == '?')
-            return repeat(a, 0, 1, false);
+            return repeat(a, 0, 1);
         else
             throw InvalidRegexException("Unexpected character");
     }

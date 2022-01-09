@@ -93,8 +93,10 @@ namespace ft
             break;
         case LOOK_BEHIND:
             delete this->component.range;
+            break;
         case LOOK_AHEAD:
             delete this->component.range;
+            break;
         default:
             break;
         }

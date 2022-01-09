@@ -1,5 +1,5 @@
 NAME    = regex
-CC      = g++
+CC      = g++-11
 FLAGS   = -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -g -std=c++98 
 HEADS   = Regex.hpp 
 SRCS = Regex.cpp RegexUtils.cpp main.cpp
