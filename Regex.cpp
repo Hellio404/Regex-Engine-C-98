@@ -230,16 +230,30 @@ namespace ft
                 }
                 else if (c == '!')
                 {
-                    ret_t ret = expr_without_repeat();
+                    RegexComponentBase *res = new RegexNegativeLookBehind();
+                    res->component.range->child = ret.c;
+                    res->component.range->min = ret.min;
+                    res->component.range->max = ret.max;
+                    return ret_t(0, 0, res);
                 }
             }
             else if (c == '=')
             {
                 ret_t ret = expr_without_repeat();
+                RegexComponentBase *res = new RegexPositiveLookAhead();
+                res->component.range->child = ret.c;
+                res->component.range->min = ret.min;
+                res->component.range->max = ret.max;
+                return ret_t(0, 0, res);
             }
             else if (c == '!')
             {
                 ret_t ret = expr_without_repeat();
+                RegexComponentBase *res = new RegexNegativeLookAhead();
+                res->component.range->child = ret.c;
+                res->component.range->min = ret.min;
+                res->component.range->max = ret.max;
+                return ret_t(0, 0, res);
             }
             else
                 throw InvalidRegexException("unexpected char after '?'");

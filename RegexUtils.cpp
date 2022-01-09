@@ -59,6 +59,9 @@ namespace ft
         case LOOK_BEHIND:
             this->component.range = new RepeatedRange();
             break;
+        case LOOK_AHEAD:
+            this->component.range = new RepeatedRange();
+            break;
         default:
             break;
         }
@@ -89,6 +92,8 @@ namespace ft
         case END_OF_GROUP:
             break;
         case LOOK_BEHIND:
+            delete this->component.range;
+        case LOOK_AHEAD:
             delete this->component.range;
         default:
             break;
@@ -769,54 +774,139 @@ namespace ft
 
     // END RegexPositiveLookBehind
 
-    // // Start RegexNegativeLookBehind
+    // Start RegexNegativeLookBehind
 
-    // RegexNegativeLookBehind::RegexNegativeLookBehind() : 
-    //     RegexComponentBase(LOOK_BEHIND) {}
+    RegexNegativeLookBehind::RegexNegativeLookBehind() : 
+        RegexComponentBase(LOOK_BEHIND) {}
 
-    // bool    RegexNegativeLookBehind::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*prev) const
-    // {
-    //     // if (this->component.range->min + ctx > this->component.range->max)
-    //     //     return false;
-        
-    //     // if (prev != NULL && prev != ptr)
-    //     //     return false;
-    //     // if (prev == ptr)
-    //     //     return fn->run();
-        
-    //     // if (info->startOfStr + ctx + this->component.range->min > ptr)
-    //     //     return false;
+    bool    RegexNegativeLookBehind::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*prev) const
+    {
+        if (prev == ptr)
+            return true;
+        else if (prev != NULL && prev != ptr)
+            return false;
 
-    //     Functor newFn(this, ptr, ctx + 1, info, fn, prev);
-    //     ptr -= this->component.range->min + ctx;
-    //     if (this->component.range->child->match(ptr, ctx, info, &newFn))
+        while (1)
+        {
+            if (info->startOfStr + ctx + this->component.range->min > ptr)
+                return fn->run();
+            if (this->component.range->min + ctx > this->component.range->max)
+                return fn->run();
+            Functor newFn(this, ptr, ctx, info, fn, ptr);
+            ptr -= this->component.range->min + ctx;
+            if (this->component.range->child->match(ptr, ctx, info, &newFn))
+            {
+                ptr += this->component.range->min + ctx;
+                return false;
+            }
+            ptr += this->component.range->min + ctx;
+            ++ctx;
+        }
+    }
 
-    //     // ptr += this->component.range->min + ctx;
-        
-    //     // this->match(ptr, ctx + 1, info, fn);
-    // }
+    void    RegexNegativeLookBehind::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexNegativeLookBehind::addChild() not implemented");
+    }
 
-    // void    RegexNegativeLookBehind::addChild(RegexComponentBase *child)
-    // {
-    //     throw ("RegexNegativeLookBehind::addChild() not implemented");
-    // }
+    void    RegexNegativeLookBehind::addChar(char c)
+    {
+        throw ("RegexNegativeLookBehind::addChar() not implemented");
+    }
 
-    // void    RegexNegativeLookBehind::addChar(char c)
-    // {
-    //     throw ("RegexNegativeLookBehind::addChar() not implemented");
-    // }
+    void    RegexNegativeLookBehind::addRangeChar(char from, char to)
+    {
+        throw ("RegexNegativeLookBehind::addRangeChar() not implemented");
+    }
 
-    // void    RegexNegativeLookBehind::addRangeChar(char from, char to)
-    // {
-    //     throw ("RegexNegativeLookBehind::addRangeChar() not implemented");
-    // }
+    RegexNegativeLookBehind::~RegexNegativeLookBehind() 
+    {
+        delete this->component.range->child;
+    }
 
-    // RegexNegativeLookBehind::~RegexNegativeLookBehind() 
-    // {
-    //     delete this->component.range->child;
-    // }
+    // END RegexNegativeLookBehind
 
-    // // END RegexNegativeLookBehind
+    // Start RegexPositiveLookAhead
+
+    RegexPositiveLookAhead::RegexPositiveLookAhead() : 
+        RegexComponentBase(LOOK_AHEAD) {}
+
+    bool    RegexPositiveLookAhead::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char* prev) const
+    {
+        if (prev != NULL)
+        {
+            ptr = prev;
+            return fn->run();
+        }
+  
+
+        Functor newFn(this, ptr, ctx, info, fn, ptr);
+        return  (this->component.range->child->match(ptr, ctx, info, &newFn));
+         
+    }
+
+    void    RegexPositiveLookAhead::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexPositiveLookAhead::addChild() not implemented");
+    }
+
+    void    RegexPositiveLookAhead::addChar(char c)
+    {
+        throw ("RegexPositiveLookAhead::addChar() not implemented");
+    }
+
+    void    RegexPositiveLookAhead::addRangeChar(char from, char to)
+    {
+        throw ("RegexPositiveLookAhead::addRangeChar() not implemented");
+    }
+
+    RegexPositiveLookAhead::~RegexPositiveLookAhead() 
+    {
+        delete this->component.range->child;
+    }
+
+    // END RegexPositiveLookAhead
+
+    // Start RegexNegativeLookAhead
+
+    RegexNegativeLookAhead::RegexNegativeLookAhead() : 
+        RegexComponentBase(LOOK_AHEAD) {}
+
+    bool    RegexNegativeLookAhead::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char* prev) const
+    {
+        if (prev != NULL)
+        {
+            return true;
+        }
+        prev = ptr;
+        Functor newFn(this, ptr, ctx, info, fn, ptr);
+        if (!(this->component.range->child->match(ptr, ctx, info, &newFn)))
+            return fn->run();
+        ptr = prev;
+        return false;
+    }
+
+    void    RegexNegativeLookAhead::addChild(RegexComponentBase *child)
+    {
+        throw ("RegexNegativeLookAhead::addChild() not implemented");
+    }
+
+    void    RegexNegativeLookAhead::addChar(char c)
+    {
+        throw ("RegexNegativeLookAhead::addChar() not implemented");
+    }
+
+    void    RegexNegativeLookAhead::addRangeChar(char from, char to)
+    {
+        throw ("RegexNegativeLookAhead::addRangeChar() not implemented");
+    }
+
+    RegexNegativeLookAhead::~RegexNegativeLookAhead() 
+    {
+        delete this->component.range->child;
+    }
+
+    // END RegexNegativeLookAhead
 
 }// namespace ft
 

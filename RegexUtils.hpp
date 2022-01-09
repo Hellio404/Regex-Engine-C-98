@@ -325,16 +325,40 @@ namespace ft
             void    addRangeChar(char, char);
     };
 
-    // struct RegexNegativeLookBehind : public RegexComponentBase
-    // {
-    //     RegexNegativeLookBehind();
-    //     ~RegexNegativeLookBehind();
-    //     bool    match(const char *&, unsigned long long, MatchInfo *, Functor*, const char* = NULL) const;
+    struct RegexNegativeLookBehind : public RegexComponentBase
+    {
+        RegexNegativeLookBehind();
+        ~RegexNegativeLookBehind();
+        bool    match(const char *&, unsigned long long, MatchInfo *, Functor*, const char* = NULL) const;
 
-    //     private:
-    //         void    addChild(RegexComponentBase *child);
-    //         void    addChar(char);
-    //         void    addRangeChar(char, char);
-    // };
+        private:
+            void    addChild(RegexComponentBase *child);
+            void    addChar(char);
+            void    addRangeChar(char, char);
+    };
+
+    struct RegexPositiveLookAhead : public RegexComponentBase
+    {
+        RegexPositiveLookAhead();
+        ~RegexPositiveLookAhead();
+        bool    match(const char *&, unsigned long long, MatchInfo *, Functor*, const char* = NULL) const;
+
+        private:
+            void    addChild(RegexComponentBase *child);
+            void    addChar(char);
+            void    addRangeChar(char, char);
+    };
+
+    struct RegexNegativeLookAhead : public RegexComponentBase
+    {
+        RegexNegativeLookAhead();
+        ~RegexNegativeLookAhead();
+        bool    match(const char *&, unsigned long long, MatchInfo *, Functor*, const char* = NULL) const;
+
+        private:
+            void    addChild(RegexComponentBase *child);
+            void    addChar(char);
+            void    addRangeChar(char, char);
+    };
 
 } // namespace ft
