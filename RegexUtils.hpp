@@ -24,8 +24,8 @@ namespace ft
     struct RepeatedRange
     {
         RegexComponentBase  *child;
-        unsigned int        min;
-        unsigned int        max;
+        unsigned long long  min;
+        unsigned long long  max;
     };
 
 

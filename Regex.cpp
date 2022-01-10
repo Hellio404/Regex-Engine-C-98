@@ -1,6 +1,132 @@
 #include <Regex.hpp>
 namespace ft
 {
+    CustomLongLong operator+(long long lhs, const CustomLongLong &rhs)
+    {
+        CustomLongLong res(rhs + lhs);
+
+        if (res.value == (-__LONG_LONG_MAX__ - 1))
+            return CustomLongLong(__LONG_LONG_MAX__);
+        return CustomLongLong(-res.value);
+    }
+
+    CustomLongLong operator-(long long lhs, const CustomLongLong &rhs)
+    {
+        return rhs - lhs;
+    }
+
+    CustomLongLong operator*(long long lhs, const CustomLongLong &rhs)
+    {
+        return CustomLongLong(rhs * lhs);
+    }
+
+    CustomLongLong operator/(long long lhs, const CustomLongLong &rhs)
+    {
+        return CustomLongLong(lhs / rhs.value);
+    }
+
+    CustomLongLong::CustomLongLong(long long value) : value(value) {}
+    CustomLongLong::CustomLongLong(const CustomLongLong &other) : value(other.value) {}
+    CustomLongLong &CustomLongLong::operator=(const CustomLongLong &other)
+    {
+        value = other.value;
+        return *this;
+    }
+
+    bool CustomLongLong::operator==(const CustomLongLong &other) const
+    {
+        return value == other.value;
+    }
+
+    bool CustomLongLong::operator!=(const CustomLongLong &other) const
+    {
+        return value != other.value;
+    }
+
+    bool CustomLongLong::operator<(const CustomLongLong &other) const
+    {
+        return value < other.value;
+    }
+
+    bool CustomLongLong::operator>(const CustomLongLong &other) const
+    {
+        return value > other.value;
+    }
+
+    bool CustomLongLong::operator<=(const CustomLongLong &other) const
+    {
+        return value <= other.value;
+    }
+
+    bool CustomLongLong::operator>=(const CustomLongLong &other) const
+    {
+        return value >= other.value;
+    }
+
+    CustomLongLong CustomLongLong::operator+(const CustomLongLong &other) const
+    {
+        return CustomLongLong(*this + other.value);
+    }
+
+    CustomLongLong CustomLongLong::operator+(long long other) const
+    {
+        if (this->value >= 0 && __LONG_LONG_MAX__ - this->value < other)
+            return CustomLongLong(__LONG_LONG_MAX__);
+        if (this->value < 0 && (-__LONG_LONG_MAX__ - 1) - this->value > other)
+            return CustomLongLong(-__LONG_LONG_MAX__ - 1);
+        else
+            return CustomLongLong(this->value + other);
+    }
+
+
+    CustomLongLong CustomLongLong::operator-(const CustomLongLong &other) const
+    {
+        return CustomLongLong(*this - other.value);
+    }
+
+    CustomLongLong CustomLongLong::operator-(long long other) const
+    {
+        // check if this->value - other will overflow or underflow if it does, return the max or min value
+        if (this->value < 0 && other == (-__LONG_LONG_MAX__ - 1))
+            return CustomLongLong((-__LONG_LONG_MAX__ - 1));
+        if (other == (-__LONG_LONG_MAX__ - 1))
+            return CustomLongLong(this->value - other); 
+        return CustomLongLong(*this + -other);
+    }
+
+    CustomLongLong CustomLongLong::operator*(const CustomLongLong &other) const
+    {
+        return CustomLongLong(*this * other.value);
+    }
+
+    CustomLongLong CustomLongLong::operator*(long long other) const
+    {
+        bool is_negative = false;
+        if (other == (-__LONG_LONG_MAX__ - 1) && this->value  != 0)
+            return (*this < 0) ? CustomLongLong(-__LONG_LONG_MAX__ - 1) : CustomLongLong(__LONG_LONG_MAX__);
+        else if (this->value == (-__LONG_LONG_MAX__ - 1) && other != 0)
+            return (other < 0) ? CustomLongLong(__LONG_LONG_MAX__) : CustomLongLong(-__LONG_LONG_MAX__ - 1);
+        is_negative = (other < 0) ^ (this->value < 0);
+        if (other < 0)
+            other = -other;
+        long long val = this->value;
+        if (this->value < 0)
+            val = -val;
+        if (other != 0 && this->value > __LONG_LONG_MAX__ / other)
+            return is_negative ? CustomLongLong(-__LONG_LONG_MAX__ - 1) : CustomLongLong(__LONG_LONG_MAX__);
+        return CustomLongLong(val * other);
+    }
+    
+    CustomLongLong CustomLongLong::operator/(const CustomLongLong &other) const
+    {
+        return CustomLongLong(*this / other.value);
+    }
+
+    CustomLongLong CustomLongLong::operator/(long long other) const
+    {
+        return CustomLongLong(this->value / other);
+    }
+
     Regex::InvalidRegexException::InvalidRegexException
         (const char* error): error(error) {
             
@@ -11,13 +137,29 @@ namespace ft
         return error;
     }
     
-    Regex::ret_t::ret_t(long long min, long long max, RegexComponentBase* c):
+    Regex::ret_t::ret_t(CustomLongLong min, CustomLongLong max, RegexComponentBase* c):
          min(min), max(max), c(c) {}
 
     Regex::Regex(const std::string &regx) : 
         regex(regx), current(regex.begin()), allowed_repeat(true)
     {
         this->root = this->parse();
+    }
+
+    RegexComponentBase*
+    Regex::parse()
+    {
+
+        RegexStartOfGroup *group = new RegexStartOfGroup();
+        RegexEndOfGroup *end = new RegexEndOfGroup(group);
+        inner_groups.push_back(group);
+        ret_t   res = expr();
+        res = concat(ret_t(0, 0, group), concat(res, ret_t(0, 0, end)));
+        if (hasMoreChars())
+            throw InvalidRegexException("Unexpected character"
+                " at the end of Regex");
+        std::cout << "Min length: " << res.min.value << " | Max length: " << res.max.value << std::endl;
+        return res.c;
     }
 
     bool Regex::match(std::string const& str) {
@@ -224,16 +366,16 @@ namespace ft
                 {
                     RegexComponentBase *res = new RegexPositiveLookBehind();
                     res->component.range->child = ret.c;
-                    res->component.range->min = ret.min;
-                    res->component.range->max = ret.max;
+                    res->component.range->min = ret.min.value;
+                    res->component.range->max = ret.max.value;
                     return ret_t(0, 0, res);
                 }
                 else if (c == '!')
                 {
                     RegexComponentBase *res = new RegexNegativeLookBehind();
                     res->component.range->child = ret.c;
-                    res->component.range->min = ret.min;
-                    res->component.range->max = ret.max;
+                    res->component.range->min = ret.min.value;
+                    res->component.range->max = ret.max.value;
                     return ret_t(0, 0, res);
                 }
             }
@@ -242,8 +384,8 @@ namespace ft
                 ret_t ret = expr_without_repeat();
                 RegexComponentBase *res = new RegexPositiveLookAhead();
                 res->component.range->child = ret.c;
-                res->component.range->min = ret.min;
-                res->component.range->max = ret.max;
+                res->component.range->min = ret.min.value;
+                res->component.range->max = ret.max.value;
                 return ret_t(0, 0, res);
             }
             else if (c == '!')
@@ -251,8 +393,8 @@ namespace ft
                 ret_t ret = expr_without_repeat();
                 RegexComponentBase *res = new RegexNegativeLookAhead();
                 res->component.range->child = ret.c;
-                res->component.range->min = ret.min;
-                res->component.range->max = ret.max;
+                res->component.range->min = ret.min.value;
+                res->component.range->max = ret.max.value;
                 return ret_t(0, 0, res);
             }
             else
@@ -513,20 +655,7 @@ namespace ft
         return std::atol(num.c_str());
     }
 
-    RegexComponentBase*
-    Regex::parse()
-    {
-
-        RegexStartOfGroup *group = new RegexStartOfGroup();
-        RegexEndOfGroup *end = new RegexEndOfGroup(group);
-        inner_groups.push_back(group);
-        ret_t   res = expr();
-        res = concat(ret_t(0, 0, group), concat(res, ret_t(0, 0, end)));
-        if (hasMoreChars())
-            throw InvalidRegexException("Unexpected character"
-                " at the end of Regex");
-        return res.c;
-    }
+    
 
     Regex::ret_t
     Regex::concat(ret_t a, ret_t b)
@@ -598,14 +727,14 @@ namespace ft
         {
             next();
             return ret_t(
-                std::min(min * a.min, static_cast<long long>(Regex::Infinity)), 
-                std::min(max * a.max, static_cast<long long>(Regex::Infinity)),
+                std::min(min * a.min, CustomLongLong(Regex::Infinity)), 
+                std::min(max * a.max, CustomLongLong(Regex::Infinity)),
                 new RegexRepeatLazy(a.c, min, max)
             );
         }
         return ret_t(
-                std::min(min * a.min, static_cast<long long>(Regex::Infinity)), 
-                std::min(max * a.max, static_cast<long long>(Regex::Infinity)),
+                std::min(min * a.min, CustomLongLong(Regex::Infinity)), 
+                std::min(max * a.max, CustomLongLong(Regex::Infinity)),
                 new RegexRepeat(a.c, min, max)
         );
     }

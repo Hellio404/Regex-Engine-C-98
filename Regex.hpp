@@ -12,6 +12,33 @@
 namespace ft
 {
 
+struct CustomLongLong
+{
+    long long value;
+
+    CustomLongLong(long long value);
+    CustomLongLong(const CustomLongLong &other);
+    CustomLongLong &operator=(const CustomLongLong &other);
+
+    bool operator==(const CustomLongLong &other) const;
+    bool operator!=(const CustomLongLong &other) const;
+    bool operator<(const CustomLongLong &other) const;
+    bool operator>(const CustomLongLong &other) const;
+    bool operator<=(const CustomLongLong &other) const;
+    bool operator>=(const CustomLongLong &other) const;
+    CustomLongLong operator+(const CustomLongLong &other) const;
+    CustomLongLong operator+(long long other) const;
+    CustomLongLong operator-(const CustomLongLong &other) const;
+    CustomLongLong operator-(long long other) const;
+    CustomLongLong operator*(const CustomLongLong &other) const;
+    CustomLongLong operator*(long long other) const;
+    CustomLongLong operator/(const CustomLongLong &other) const;
+    CustomLongLong operator/(long long other) const;
+};
+
+
+
+
 class Regex
 {
     std::string regex;
@@ -23,10 +50,10 @@ class Regex
     bool                                allowed_repeat;
     struct ret_t
     {
-        long long min;
-        long long max;
+        CustomLongLong min;
+        CustomLongLong max;
         RegexComponentBase* c;
-        ret_t(long long , long long , RegexComponentBase* );
+        ret_t(CustomLongLong , CustomLongLong , RegexComponentBase* );
     };
 
 public:
