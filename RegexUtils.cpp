@@ -147,7 +147,7 @@ namespace ft
 
     
 
-    void    RegexGroup::addChild(RegexComponentBase *child)
+    void    RegexGroup::addChild(RegexComponentBase *)
     {
         throw ("RegexGroup::addChild() not implemented");
     }
@@ -201,7 +201,7 @@ namespace ft
 
    
 
-    void    RegexInverseGroup::addChild(RegexComponentBase *child)
+    void    RegexInverseGroup::addChild(RegexComponentBase *)
     {
         throw ("RegexInverseGroup::addChild() not implemented");
     }
@@ -231,12 +231,12 @@ namespace ft
         return this->component.children->at(ctx)->match(ptr, 0, info, &newFn);
     }
 
-    void    RegexConcat::addChar(char c)
+    void    RegexConcat::addChar(char)
     {
         throw ("RegexConcat::addChar() not implemented");
     }
 
-    void    RegexConcat::addRangeChar(char from, char to)
+    void    RegexConcat::addRangeChar(char, char)
     {
         throw ("RegexConcat::addRangeChar() not implemented");
     }
@@ -272,12 +272,12 @@ namespace ft
         return this->match(ptr, ctx + 1, info, fn);
     }
 
-    void    RegexAlternate::addChar(char c)
+    void    RegexAlternate::addChar(char)
     {
         throw ("RegexAlternate::addChar() not implemented");
     }
 
-    void    RegexAlternate::addRangeChar(char from, char to)
+    void    RegexAlternate::addRangeChar(char, char)
     {
         throw ("RegexAlternate::addRangeChar() not implemented");
     }
@@ -337,12 +337,12 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    void    RegexRepeat::addChar(char c)
+    void    RegexRepeat::addChar(char)
     {
         throw ("RegexRepeat::addChar() not implemented");
     }
 
-    void    RegexRepeat::addRangeChar(char from, char to)
+    void    RegexRepeat::addRangeChar(char, char)
     {
         throw ("RegexRepeat::addRangeChar() not implemented");
     }
@@ -378,7 +378,7 @@ namespace ft
         this->component.range->max = r.max;
     }
 
-    bool    RegexRepeatLazy::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char* prev) const
+    bool    RegexRepeatLazy::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
     {
         if (ctx > this->component.range->max)
             return false;
@@ -399,12 +399,12 @@ namespace ft
         this->component.children->push_back(child);
     }
 
-    void    RegexRepeatLazy::addChar(char c)
+    void    RegexRepeatLazy::addChar(char)
     {
         throw ("RegexRepeatLazy::addChar() not implemented");
     }
 
-    void    RegexRepeatLazy::addRangeChar(char from, char to)
+    void    RegexRepeatLazy::addRangeChar(char, char)
     {
         throw ("RegexRepeatLazy::addRangeChar() not implemented");
     }
@@ -425,7 +425,7 @@ namespace ft
         this->component.group->second = NULL;
     }
     
-    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexStartOfGroup::match(const char* &ptr, unsigned long long, MatchInfo *, Functor*fn, const char*) const
     {
         std::pair<const char *, const char *> tmp = getCapturedGroup();
         this->component.group->first = ptr;
@@ -450,17 +450,17 @@ namespace ft
         return *this->component.group;
     }
 
-    void    RegexStartOfGroup::addChild(RegexComponentBase *child)
+    void    RegexStartOfGroup::addChild(RegexComponentBase *)
     {
         throw ("RegexStartOfGroup::addChild() not implemented");
     }
 
-    void    RegexStartOfGroup::addChar(char c)
+    void    RegexStartOfGroup::addChar(char)
     {
         throw ("RegexStartOfGroup::addChar() not implemented");
     }
 
-    void    RegexStartOfGroup::addRangeChar(char from, char to)
+    void    RegexStartOfGroup::addRangeChar(char, char)
     {
         throw ("RegexStartOfGroup::addRangeChar() not implemented");
     }
@@ -478,7 +478,7 @@ namespace ft
     {
         this->component.groupStart = group;
     }
-    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexEndOfGroup::match(const char* &ptr, unsigned long long, MatchInfo *, Functor*fn, const char*) const
     {
         std::pair<const char *, const char *> tmp = this->component.groupStart->getCapturedGroup();
         this->component.groupStart->capture(ptr);
@@ -499,17 +499,17 @@ namespace ft
         return matched;
     }
 
-    void    RegexEndOfGroup::addChild(RegexComponentBase *child)
+    void    RegexEndOfGroup::addChild(RegexComponentBase *)
     {
         throw ("RegexEndOfGroup::addChild() not implemented");
     }
 
-    void    RegexEndOfGroup::addChar(char c)
+    void    RegexEndOfGroup::addChar(char)
     {
         throw ("RegexEndOfGroup::addChar() not implemented");
     }
 
-    void    RegexEndOfGroup::addRangeChar(char from, char to)
+    void    RegexEndOfGroup::addRangeChar(char, char)
     {
         throw ("RegexEndOfGroup::addRangeChar() not implemented");
     }
@@ -522,22 +522,22 @@ namespace ft
     // Start RegexEnd
     RegexEnd::RegexEnd() : RegexComponentBase(END) {}
 
-    bool    RegexEnd::match(const char* &, unsigned long long, MatchInfo *info, Functor*, const char*) const
+    bool    RegexEnd::match(const char* &, unsigned long long, MatchInfo *, Functor*, const char*) const
     {
         return true;
     }
 
-    void    RegexEnd::addChild(RegexComponentBase *child)
+    void    RegexEnd::addChild(RegexComponentBase *)
     {
         throw ("RegexEnd::addChild() not implemented");
     }
 
-    void    RegexEnd::addChar(char c)
+    void    RegexEnd::addChar(char)
     {
         throw ("RegexEnd::addChar() not implemented");
     }
 
-    void    RegexEnd::addRangeChar(char from, char to)
+    void    RegexEnd::addRangeChar(char , char )
     {
         throw ("RegexEnd::addRangeChar() not implemented");
     }
@@ -556,7 +556,7 @@ namespace ft
         this->component.groupStart = group;
     }
 
-    bool    RegexBackReference::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexBackReference::match(const char* &ptr, unsigned long long , MatchInfo *, Functor*fn, const char*) const
     {
         std::pair<const char *, const char *> const& group = this->component.groupStart->getCapturedGroup();
         if (group.first == NULL || group.first == group.second)
@@ -573,17 +573,17 @@ namespace ft
         return res;
     }
 
-    void    RegexBackReference::addChild(RegexComponentBase *child)
+    void    RegexBackReference::addChild(RegexComponentBase *)
     {
         throw ("RegexBackReference::addChild() not implemented");
     }
 
-    void    RegexBackReference::addChar(char c)
+    void    RegexBackReference::addChar(char)
     {
         throw ("RegexBackReference::addChar() not implemented");
     }
 
-    void    RegexBackReference::addRangeChar(char from, char to)
+    void    RegexBackReference::addRangeChar(char, char)
     {
         throw ("RegexBackReference::addRangeChar() not implemented");
     }
@@ -601,24 +601,24 @@ namespace ft
         this->component.startOfString = start;
     }
 
-    bool    RegexStartOfLine::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexStartOfLine::match(const char* &ptr, unsigned long long, MatchInfo *info, Functor*fn, const char*) const
     {
         if (ptr == info->startOfStr || *(ptr - 1) == '\n')
             return fn->run();
         return false;
     }
 
-    void    RegexStartOfLine::addChild(RegexComponentBase *child)
+    void    RegexStartOfLine::addChild(RegexComponentBase *)
     {
         throw ("RegexStartOfLine::addChild() not implemented");
     }
 
-    void    RegexStartOfLine::addChar(char c)
+    void    RegexStartOfLine::addChar(char)
     {
         throw ("RegexStartOfLine::addChar() not implemented");
     }
 
-    void    RegexStartOfLine::addRangeChar(char from, char to)
+    void    RegexStartOfLine::addRangeChar(char, char)
     {
         throw ("RegexStartOfLine::addRangeChar() not implemented");
     }
@@ -631,24 +631,24 @@ namespace ft
 
     RegexEndOfLine::RegexEndOfLine() : RegexComponentBase(END_OF_LINE) {}
 
-    bool    RegexEndOfLine::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexEndOfLine::match(const char* &ptr, unsigned long long, MatchInfo *info, Functor*fn, const char*) const
     {
         if (ptr == info->endOfStr || *ptr == '\n')
             return fn->run();
         return false;
     }
 
-    void    RegexEndOfLine::addChild(RegexComponentBase *child)
+    void    RegexEndOfLine::addChild(RegexComponentBase *)
     {
         throw ("RegexEndOfLine::addChild() not implemented");
     }
 
-    void    RegexEndOfLine::addChar(char c)
+    void    RegexEndOfLine::addChar(char)
     {
         throw ("RegexEndOfLine::addChar() not implemented");
     }
 
-    void    RegexEndOfLine::addRangeChar(char from, char to)
+    void    RegexEndOfLine::addRangeChar(char, char)
     {
         throw ("RegexEndOfLine::addRangeChar() not implemented");
     }
@@ -661,7 +661,7 @@ namespace ft
 
     RegexWordBoundary::RegexWordBoundary() : RegexComponentBase(WORD_BOUNDARY) {}
 
-    bool    RegexWordBoundary::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexWordBoundary::match(const char* &ptr, unsigned long long, MatchInfo *info, Functor*fn, const char*) const
     {
         if ((ptr == info->startOfStr &&  (isalnum(*ptr) || *ptr == '_'))
             || (ptr == info->endOfStr 
@@ -673,17 +673,17 @@ namespace ft
         return false;
     }
 
-    void    RegexWordBoundary::addChild(RegexComponentBase *child)
+    void    RegexWordBoundary::addChild(RegexComponentBase *)
     {
         throw ("RegexWordBoundary::addChild() not implemented");
     }
 
-    void    RegexWordBoundary::addChar(char c)
+    void    RegexWordBoundary::addChar(char)
     {
         throw ("RegexWordBoundary::addChar() not implemented");
     }
 
-    void    RegexWordBoundary::addRangeChar(char from, char to)
+    void    RegexWordBoundary::addRangeChar(char, char)
     {
         throw ("RegexWordBoundary::addRangeChar() not implemented");
     }
@@ -696,7 +696,7 @@ namespace ft
 
     RegexNonWordBoundary::RegexNonWordBoundary() : RegexComponentBase(WORD_BOUNDARY) {}
 
-    bool    RegexNonWordBoundary::match(const char* &ptr, unsigned long long ctx, MatchInfo *info, Functor*fn, const char*) const
+    bool    RegexNonWordBoundary::match(const char* &ptr, unsigned long long, MatchInfo *info, Functor*fn, const char*) const
     {
         if (!((ptr == info->startOfStr &&  (isalnum(*ptr) || *ptr == '_'))
             || (ptr == info->endOfStr 
@@ -708,17 +708,17 @@ namespace ft
         return false;
     }
 
-    void    RegexNonWordBoundary::addChild(RegexComponentBase *child)
+    void    RegexNonWordBoundary::addChild(RegexComponentBase *)
     {
         throw ("RegexNonWordBoundary::addChild() not implemented");
     }
 
-    void    RegexNonWordBoundary::addChar(char c)
+    void    RegexNonWordBoundary::addChar(char)
     {
         throw ("RegexNonWordBoundary::addChar() not implemented");
     }
 
-    void    RegexNonWordBoundary::addRangeChar(char from, char to)
+    void    RegexNonWordBoundary::addRangeChar(char, char)
     {
         throw ("RegexNonWordBoundary::addRangeChar() not implemented");
     }
@@ -754,17 +754,17 @@ namespace ft
         return this->match(ptr, ctx + 1, info, fn);
     }
 
-    void    RegexPositiveLookBehind::addChild(RegexComponentBase *child)
+    void    RegexPositiveLookBehind::addChild(RegexComponentBase *)
     {
         throw ("RegexPositiveLookBehind::addChild() not implemented");
     }
 
-    void    RegexPositiveLookBehind::addChar(char c)
+    void    RegexPositiveLookBehind::addChar(char)
     {
         throw ("RegexPositiveLookBehind::addChar() not implemented");
     }
 
-    void    RegexPositiveLookBehind::addRangeChar(char from, char to)
+    void    RegexPositiveLookBehind::addRangeChar(char, char)
     {
         throw ("RegexPositiveLookBehind::addRangeChar() not implemented");
     }
@@ -806,17 +806,17 @@ namespace ft
         }
     }
 
-    void    RegexNegativeLookBehind::addChild(RegexComponentBase *child)
+    void    RegexNegativeLookBehind::addChild(RegexComponentBase *)
     {
         throw ("RegexNegativeLookBehind::addChild() not implemented");
     }
 
-    void    RegexNegativeLookBehind::addChar(char c)
+    void    RegexNegativeLookBehind::addChar(char)
     {
         throw ("RegexNegativeLookBehind::addChar() not implemented");
     }
 
-    void    RegexNegativeLookBehind::addRangeChar(char from, char to)
+    void    RegexNegativeLookBehind::addRangeChar(char, char)
     {
         throw ("RegexNegativeLookBehind::addRangeChar() not implemented");
     }
@@ -847,17 +847,17 @@ namespace ft
          
     }
 
-    void    RegexPositiveLookAhead::addChild(RegexComponentBase *child)
+    void    RegexPositiveLookAhead::addChild(RegexComponentBase *)
     {
         throw ("RegexPositiveLookAhead::addChild() not implemented");
     }
 
-    void    RegexPositiveLookAhead::addChar(char c)
+    void    RegexPositiveLookAhead::addChar(char)
     {
         throw ("RegexPositiveLookAhead::addChar() not implemented");
     }
 
-    void    RegexPositiveLookAhead::addRangeChar(char from, char to)
+    void    RegexPositiveLookAhead::addRangeChar(char, char)
     {
         throw ("RegexPositiveLookAhead::addRangeChar() not implemented");
     }
@@ -888,17 +888,17 @@ namespace ft
         return false;
     }
 
-    void    RegexNegativeLookAhead::addChild(RegexComponentBase *child)
+    void    RegexNegativeLookAhead::addChild(RegexComponentBase *)
     {
         throw ("RegexNegativeLookAhead::addChild() not implemented");
     }
 
-    void    RegexNegativeLookAhead::addChar(char c)
+    void    RegexNegativeLookAhead::addChar(char)
     {
         throw ("RegexNegativeLookAhead::addChar() not implemented");
     }
 
-    void    RegexNegativeLookAhead::addRangeChar(char from, char to)
+    void    RegexNegativeLookAhead::addRangeChar(char, char)
     {
         throw ("RegexNegativeLookAhead::addRangeChar() not implemented");
     }
