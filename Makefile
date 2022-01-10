@@ -2,7 +2,7 @@ NAME    = regex
 CC      = g++
 FLAGS   = -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -g -std=c++98 
 HEADS   = Regex.hpp 
-SRCS = Regex.cpp RegexUtils.cpp main.cpp
+SRCS = Regex.cpp RegexUtils.cpp tests/main.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 

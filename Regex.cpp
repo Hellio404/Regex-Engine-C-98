@@ -158,7 +158,6 @@ namespace ft
         if (hasMoreChars())
             throw InvalidRegexException("Unexpected character"
                 " at the end of Regex");
-        std::cout << "Min length: " << res.min.value << " | Max length: " << res.max.value << std::endl;
         return res.c;
     }
 
