@@ -41,7 +41,8 @@ struct CustomLongLong
 
 class Regex
 {
-    std::string regex;
+    std::string     regex;
+    unsigned int    flags;
     std::string::const_iterator current;
     RegexComponentBase* root;
     static const long long Infinity = __LONG_LONG_MAX__;
@@ -57,18 +58,25 @@ class Regex
     };
 
 public:
-    std::vector <std::string> groups;
+    struct  result_t
+    {
+        std::string str;
+        std::vector<std::string> groups;
+    };
     
-    Regex(const std::string &regex);
+    Regex(const std::string &regex, unsigned int = 0);
     ~Regex();
-    bool                        match(std::string const&);
-    bool                        match(const char *);
-    std::vector<std::string >   matchAll(std::string const&);
-    std::vector<std::string >   matchAll(const char*);
+    bool                        match(std::string const&, result_t &);
+    bool                        match(const char *, result_t &);
+    std::vector<result_t>       matchAll(std::string const&);
+    std::vector<result_t>       matchAll(const char*);
+    bool                        test(std::string const&);
+    bool                        test(const char*);
     enum 
     {
         iCase = 4,
     };
+    
 private:
     char                    peek();
     char                    eat(char, const char*);

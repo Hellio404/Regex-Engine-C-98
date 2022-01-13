@@ -140,8 +140,8 @@ namespace ft
     Regex::ret_t::ret_t(CustomLongLong min, CustomLongLong max, RegexComponentBase* c):
          min(min), max(max), c(c) {}
 
-    Regex::Regex(const std::string &regx) : 
-        regex(regx), current(regex.begin()), allowed_repeat(true)
+    Regex::Regex(const std::string &regx, unsigned int flags) : 
+        regex(regx), flags(flags), current(regex.begin()), allowed_repeat(true)
     {
         this->root = this->parse();
     }
@@ -161,18 +161,18 @@ namespace ft
         return res.c;
     }
 
-    bool Regex::match(std::string const& str) {
-        return this->match(str.c_str());
+    bool Regex::match(std::string const& str, result_t &r) 
+    {
+        return this->match(str.c_str(), r);
     }
 
-    bool    Regex::match(const char *str)
+    bool    Regex::match(const char *str, result_t &r)
     {
-        this->groups.clear();
         RegexEnd end;
         MatchInfo info;
         info.startOfStr = str;
         info.endOfStr = str + std::strlen(str);
-        info.flags = 0;
+        info.flags = flags;
         Functor fn(&end, str, 0, &info, NULL);
         for (size_t i = 0; str[i]; i++)
         {
@@ -181,14 +181,17 @@ namespace ft
             {
                 for (size_t j = 0; j < this->inner_groups.size(); j++)
                 {
+                    
                     if (this->inner_groups[j]->getCapturedGroup().first > this->inner_groups[j]->getCapturedGroup().second)
-                        this->groups.push_back("");
+                        r.groups.push_back("");
                     else 
                     {
                         std::string group(this->inner_groups[j]->getCapturedGroup().first,
                                       this->inner_groups[j]->getCapturedGroup().second);
-                        this->groups.push_back(group);
+                        r.groups.push_back(group);
                     }
+                    if (j == 0)
+                        r.str = r.groups.back();
                     this->inner_groups[j]->component.group->first = NULL;
                     this->inner_groups[j]->component.group->second = NULL;
                 }
@@ -198,23 +201,32 @@ namespace ft
         return false;
     }
 
-    std::vector<std::string> Regex::matchAll(std::string const& str)
+    std::vector<Regex::result_t> Regex::matchAll(std::string const& str)
     {
         return this->matchAll(str.c_str());
     }
 
-    std::vector<std::string> Regex::matchAll(const char *str)
+    std::vector<Regex::result_t> Regex::matchAll(const char *str)
     {
-        std::vector<std::string> result;
-        while (this->match(str))
+        std::vector<result_t> result(1);
+        while (this->match(str, result.back()))
         {
-            result.push_back(groups[0]);
-            str += groups[0].size();
+           result.resize(result.size() + 1);
         }
+        result.pop_back();
         return result;
     }
 
+    bool    Regex::test(const char *str)
+    {
+        result_t r;
+        return this->match(str, r);
+    }
 
+    bool    Regex::test(std::string const& str)
+    {
+        return this->test(str.c_str());
+    }
 
     Regex::~Regex() {
         delete this->root;
